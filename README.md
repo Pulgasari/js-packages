@@ -11,6 +11,8 @@ Collection of JavaScript packages I created for personal use.
 - https://svgjs.dev/docs/3.2/
 - SVG.js Filter
 - https://github.com/svgdotjs/svg.filter.js/
+- zod
+- https://jsr.io/@zod/zod
 
 ### Preact
 - @preact/signals
