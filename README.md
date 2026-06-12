@@ -2,9 +2,15 @@
 Collection of JavaScript packages I created for personal use.
 
 ## Packages I created
-
+- @pulgasari/is
+- https://jsr.io/@pulgasari/is
 
 ## Packages I regularly use
+- SVG.js
+- https://github.com/svgdotjs/svg.js
+- https://svgjs.dev/docs/3.2/
+- SVG.js Filter
+- https://github.com/svgdotjs/svg.filter.js/
 
 ### Preact
 - @preact/signals
