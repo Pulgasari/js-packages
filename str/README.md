@@ -29,19 +29,28 @@ npx jsr add @pulgasari/str
 ## usage
 
 ```js
-import str, { toKebabCase, capitalize, unquote } from '@pulgasari/str';
-
 // standalone transforms
+import { toKebabCase, capitalize, unquote } from '@pulgasari/str';
+
 toKebabCase('userProfileStatus'); // 'user-profile-status'
 capitalize('foo');                // 'Foo'
+```
 
+```js
 // static form
-str.toSlugCase('Héllo Wörld!');   // 'hello-world'
+import str from '@pulgasari/str';
 
-// chainable form: methods run against the wrapped string,
+str.toSlugCase('Héllo Wörld!'); // 'hello-world'
+```
+
+```js
+// chainable form:
+// methods run against the wrapped string,
 // unknown members fall through to native String methods
-str('  Hi  ').trim();             // 'Hi'
-str('abc').toUpperCase();         // 'ABC'
+import str from '@pulgasari/str';
+
+str('  Hi  ').trim();     // 'Hi'
+str('abc').toUpperCase(); // 'ABC'
 ```
 
 transforms: `capitalize`, `toLowerCase`, `toUpperCase`, `toCamelCase`,
