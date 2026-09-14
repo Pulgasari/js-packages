@@ -4,12 +4,26 @@ namespaced, colorized `console` wrapper with a runtime gate and child loggers.
 works in the browser (css-colors) and in node (ansi, respects `NO_COLOR` and
 non-tty output).
 
+## cdn
+
+```javascript
+import str from 'https://esm.sh/jsr/@pulgasari/logger';
+```
+```javascript
+import str from 'https://esm.sh/jsr/@pulgasari/logger@1.0.0';
+```
+
 ## install
 
 ```sh
 deno add jsr:@pulgasari/logger
 ```
-
+```sh
+pnpm add jsr:@pulgasari/logger
+```
+```sh
+yarn add jsr:@pulgasari/logger
+```
 ```sh
 npx jsr add @pulgasari/logger
 ```
