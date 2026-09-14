@@ -1,24 +1,24 @@
 // @ts-self-types="./url.d.ts"
 // @pulgasari/url
-//
+
 // thin, chainable wrapper around the native URL / URLSearchParams API.
-//
 //   const u = url('/blog?page=2');
 //   u.path.append('My Post');      // -> /blog/my-post
 //   u.query.set('page', null);     // -> removes ?page
 //   u.toString();                  // -> https://example.com/blog/my-post
 
+// :::::: IMPORT
+
 import { isNullish, isSymbol } from '@pulgasari/is';
 import str from '@pulgasari/str';
 
-// wraps a non-array value into a single-element array, leaves arrays untouched
-const arrayfied = (value) => Array.isArray(value) ? value : [value];
+// :::::: INTERNAL
 
-/** flattens mixed args (values, arrays of values) into a flat list of slugs. */
-const toSlugs = (values) => arrayfied(values).flat(Infinity).map(str.toSlugCase);
+const arrayfied   = (value)  => Array.isArray(value) ? value : [value];
+const toSlugs     = (values) => arrayfied(values).flat(Infinity).map(str.toSlugCase);
+const currentHref = ()       => typeof window === 'undefined' ? undefined : window.location.href;
 
-/** Current document location, or undefined outside the browser. */
-const currentHref = () => typeof window === 'undefined' ? undefined : window.location.href;
+// :::::: MAIN
 
 /**
  * Path segment handling.
@@ -149,47 +149,34 @@ class UrlQuery {
   get params () { return this.#url.searchParams; } // live params of the underlying URL
   get values () { return (this.#values ??= createQueryView(this.#url)); } // collision-free property view      
   
-  has    (key) { return this.params.has(key); }
-  get    (key) { return this.params.get(key); }
-  getAll (key) { return this.params.getAll(key); } // all values of a repeated parameter      
+  has    = (key) => this.params.has    (key);
+  get    = (key) => this.params.get    (key);
+  getAll = (key) => this.params.getAll (key); // all values of a repeated parameter      
 
   
 
   /** Sets a parameter. A nullish value removes it. */
-  set(key, value) {
+  set (key, value) {
     if (isNullish(value)) this.params.delete(key);
     else this.params.set(key, String(value));
 
     return this;
   }
 
+  // set = (key, value) => isNullish(value) ? this.delete(key)
+
   /** Sets many parameters at once: query.assign({ page: 2, sort: null }) */
-  assign(values) {
+  assign (values) {
     for (const [key, value] of Object.entries(values)) this.set(key, value);
     return this;
   }
 
-  delete(key) {
-    this.params.delete(key);
-    return this;
-  }
+  clear    = ()    => (this.#url.search = '', this);
+  delete   = (key) => (this.params.delete(key), this);
+  toObject = ()    => Object.fromEntries(this.params);
+  toString = ()    => this.#url.search;
 
-  clear() {
-    this.#url.search = '';
-    return this;
-  }
-
-  toObject() {
-    return Object.fromEntries(this.params);
-  }
-
-  toString() {
-    return this.#url.search;
-  }
-
-  [Symbol.iterator]() {
-    return this.params[Symbol.iterator]();
-  }
+  [Symbol.iterator]() { return this.params[Symbol.iterator](); }
 }
 
 class Url {
@@ -212,9 +199,11 @@ class Url {
   set full (value) { this.instance.href = new URL(value, this.instance).href; }
   set hash (value) { this.instance.hash = value; }
 
-  clone    () { return new Url(this.full); }
-  toString () { return this.full; }
+  clone    = () => new Url(this.full);
+  toString = () =>         this.full;
 }
+
+// :::::: EXPORT
 
 export { Url };
 export const url = (input, base) => new Url(input, base);
