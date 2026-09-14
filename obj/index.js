@@ -9,9 +9,10 @@ isPlainObject = value => isObject(value) && (value.constructor === Object || !va
 
 // :::::: CORE / METHODS
 
-export const deepClone = (value) => typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value));
+export const
+deepClone = (value) => typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value)),     
 
-export const deepMerge = (target, ...sources) => {
+deepMerge = (target, ...sources) => {
   for (const source of sources) {
     if (!isPlainObject(source)) continue;
     for (const key of Object.keys(source)) {
@@ -21,39 +22,39 @@ export const deepMerge = (target, ...sources) => {
     }
   }
   return target;
-};
+},
 
-export const resolvePath = (object, dotKey) => {
+resolvePath = (object, dotKey) => {
   const parts  = dotKey.split('.');
   const key    = parts.pop();
   const target = parts.reduce((node, part) => node[part], object);
   const value  = target[key];
 
   return { target, key, value };
-};
+},
 
-export const getByPath = (object, path) => {
+getByPath = (object, path) => {
   return resolvePath(object, path).value;
-};
+},
 
-export const hasPath = (object, path) => {
+hasPath = (object, path) => {
   const { target, key } = resolvePath(object, path);
   return Object.hasOwn(target, key);
-};
+},
 
-export const setByPath = (object, path, value) => {
+setByPath = (object, path, value) => {
   const { target, key } = resolvePath(object, path);
   target[key] = value;
   return object;
-};
+},
 
-export const deleteByPath = (object, path) => {
+deleteByPath = (object, path) => {
   const { target, key } = resolvePath(object, path);
   delete target[key];
   return object;
-};
+},
 
-export const toggleByPath = (object, path) => {
+toggleByPath = (object, path) => {
   const { target, key, value } = resolvePath(object, path);
 
   target[key] = typeof value === 'boolean' ? !value
@@ -62,13 +63,13 @@ export const toggleByPath = (object, path) => {
     : value;
 
   return object;
-};
+},
 
-export const assign = (target, ...sources) => {
+assign = (target, ...sources) => {
   return Object.assign(target, ...sources);
-};
+},
 
-export const merge = (target, ...sources) => {
+merge = (target, ...sources) => {
   for (const source of sources) {
     for (const [key, value] of Object.entries(source)) {
       if (isPlainObject(value) && isPlainObject(target[key]))
@@ -79,9 +80,9 @@ export const merge = (target, ...sources) => {
   }
 
   return target;
-};
+},
 
-export const dropByKey = (object, ...keys) => {
+dropByKey = (object, ...keys) => {
   const result = { ...object };
   for (const key of keys) delete result[key];
   return result;
@@ -90,16 +91,18 @@ export const dropByKey = (object, ...keys) => {
 
 // ::: TRANSFORM
 
-export const transformKeys = (object, ...fns) => {
+export const 
+
+transformKeys = (object, ...fns) => {
   return Object.fromEntries(
     Object.entries(object).map(([key, value]) => {
       for (const fn of fns) key = fn(key, value);
       return [key, value];
     })
   );
-};
+},
 
-export const transformValues = (object, ...fns) => {
+transformValues = (object, ...fns) => {
   return Object.fromEntries(
     Object.entries(object).map(([key, value]) => {
       for (const fn of fns) value = fn(value, key);
@@ -135,7 +138,7 @@ const methods = {
   toValues,
 };
 
-const obj = object => new Proxy({}, {
+const obj = object => new Proxy ({}, {
   get (_, method) {
     const fn = methods[method];
 
