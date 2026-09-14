@@ -1,0 +1,20 @@
+# publishes every @pulgasari/* workspace member under js/packages to jsr.
+name: publish to jsr
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # oidc token jsr uses for auth + provenance
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: publish workspace
+        working-directory: /
+        run: deno publish
