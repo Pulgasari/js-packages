@@ -93,15 +93,6 @@ class UrlQuery {
   get params () { return this.#url.searchParams; } // live params of the underlying URL
   get values () { return (this.#values ??= createQueryView(this.#url)); } // collision-free property view      
   
-  set (key, value) {
-    if (isNullish(value)) this.params.delete(key);
-    else this.params.set(key, String(value));
-
-    return this;
-  }
-
-//set (key, value) { isNullish(value) ? this.delete(key) : this.params.set(key, String(value)); return this; }
-  
   assign   (values) { for (const [key, value] of Object.entries(values)) this.set(key, value); return this; }         
 //assign   (values) { for (const key of values) this.set(key, values[key]); return this; }
   clear    ()       { this.#url.search = ''; return this; }
@@ -109,6 +100,7 @@ class UrlQuery {
   has      (key)    { return this.params.has    (key); }
   get      (key)    { return this.params.get    (key); }
   getAll   (key)    { return this.params.getAll (key); } // all values of a repeated parameter      
+  set      (key, v) { isNullish(v) ? this.delete(key) : this.params.set(key, String(v)); return this; }
   toObject ()       { return Object.fromEntries(this.params); }
   toString ()       { return this.#url.search; }
   
@@ -117,7 +109,7 @@ class UrlQuery {
 
 class Url {
   constructor (input, base = currentHref()) {
-    this.instance = new URL(input?.toString() ?? base, base);
+    this.instance = new URL (input?.toString() ?? base, base);
     this.path     = new UrlPath  (this.instance);
     this.query    = new UrlQuery (this.instance);
   }
@@ -126,11 +118,11 @@ class Url {
   get hash   () { return this.instance.hash; }
   get origin () { return this.instance.origin; }
 
-  set full (value) { this.instance.href = new URL(value, this.instance).href; }
+  set full (value) { this.instance.href = new URL (value, this.instance).href; }
   set hash (value) { this.instance.hash = value; }
 
-  clone    = () => new Url(this.full);
-  toString = () =>         this.full;
+  clone    = () => new Url (this.full);
+  toString = () =>          this.full;
 }
 
 // :::::: EXPORT
