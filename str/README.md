@@ -2,12 +2,26 @@
 
 string case transforms and a dual-use `str()` helper.
 
+## cdn
+
+```javascript
+import str from 'https://esm.sh/jsr/@pulgasari/str';
+```
+```javascript
+import str from 'https://esm.sh/jsr/@pulgasari/str@1.0.0';
+```
+
 ## install
 
 ```sh
 deno add jsr:@pulgasari/str
 ```
-
+```sh
+pnpm add jsr:@pulgasari/str
+```
+```sh
+yarn add jsr:@pulgasari/str
+```
 ```sh
 npx jsr add @pulgasari/str
 ```
