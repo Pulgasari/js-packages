@@ -24,7 +24,7 @@ const upperFirst = (word) => word.charAt(0).toUpperCase() + word.slice(1);
 
 // :::::: MAIN
 
-export const // Standalone exportable transform functions
+export const // transform
 capitalize     = value => { const s = String(value ?? ''); return s.charAt(0).toUpperCase() + s.slice(1); },
 toLowerCase    = value => String(value ?? '').toLowerCase(),
 toUpperCase    = value => String(value ?? '').toUpperCase(),
@@ -65,10 +65,6 @@ const methods = {
   unquote,
 };
 
-/**
- * Dual-use string utility supporting both chainable str(val) calls
- * and direct static str.method(val) execution.
- */
 export const str = Object.assign(
   function str (value) {
     const string = String(value ?? '');
@@ -78,9 +74,9 @@ export const str = Object.assign(
         if (prop === 'toString') return () => string;
         if (prop === 'valueOf')  return () => string;
         if (prop in methods)     return (...args) => methods[prop](string, ...args);
-        
-        const nativeAttribute = string[prop];
-        return typeof nativeAttribute === 'function' ? nativeAttribute.bind(string) : nativeAttribute;
+
+        const native = string[prop];
+        return typeof native === 'function' ? native.bind(string) : native;
       }
     });
   },
