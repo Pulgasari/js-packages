@@ -25,15 +25,15 @@ const resolve = p => {
   return fn;
 };
 
+// :::::: MAIN
+
 // pattern matcher
-export const testRule = (rule, value) => {
+const testRule = (rule, value) => {
   if (typeof rule === 'function') return rule(value);
   if (typeof rule === 'boolean')  return rule;
   if (Array.isArray(rule))        return rule.every(r => testRule(r, value));
   return false;
 };
-
-// :::::: MAIN
 
 const
 // an empty list returns false everywhere, instead of the vacuous true
@@ -45,4 +45,4 @@ isAny = (value, ...list) => list.some(p => !!resolve(p)(value));
 // :::::: EXPORT
 
 export * from './predicates.js';
-export { is, isAny, isNot };
+export { is, isAny, isNot, testRule };
