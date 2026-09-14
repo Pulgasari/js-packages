@@ -7,11 +7,15 @@
 //   u.query.set('page', null);     // -> removes ?page
 //   u.toString();                  // -> https://example.com/blog/my-post
 
-// :::::: IMPORT
-
-import str from '@pulgasari/str';
-
 // :::::: INTERNAL
+
+const toSlug = (value) => String(value)
+  .replace(/ß/g, 'ss')
+  .normalize('NFKD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/[^a-zA-Z0-9]+/g, '-')
+  .replace(/^-+|-+$/g, '')
+  .toLowerCase();
 
 const DEFAULT_BASE = 'http://localhost';
 
@@ -19,8 +23,8 @@ const isNullish = sth => typeof sth === 'undefined' || typeof sth === 'null';
 const isSymbol  = sth => typeof sth === 'symbol';
 
 const arrayfied   = (value)  => Array.isArray(value) ? value : [value];
-const toSlugs     = (values) => arrayfied(values).flat(Infinity).map(str.toSlugCase);
-const currentHref = () => (typeof window !== 'undefined' ? window.location.href : DEFAULT_BASE);    
+const currentHref = ()       => (typeof window !== 'undefined' ? window.location.href : DEFAULT_BASE);    
+const toSlugs     = (values) => arrayfied(values).flat(Infinity).map(toSlug);
 
 // :::::: MAIN
 
@@ -34,10 +38,7 @@ class UrlPath {
   get segments ()         { return this.#url.pathname.split('/').filter(Boolean); }
   set segments (segments) { this.#url.pathname = `/${segments.join('/')}`; }
   
-  append  (...values) { this.segments = [...this.segments, ...toSlugs(values)]; return this; }
-  prepend (...values) { this.segments = [...toSlugs(values), ...this.segments]; return this; }
-
-  /** Like append(), but skips segments that are already present. */
+  
   add (...values) {
     const segments = this.segments;
 
@@ -48,17 +49,18 @@ class UrlPath {
     this.segments = segments;
     return this;
   }
-
-  /** Removes every occurrence of the given segments. */
+  
   remove (...values) {
     const removable = new Set(toSlugs(values));
     this.segments = this.segments.filter((segment) => !removable.has(segment));
     return this;
   }
-
-  has      (value) { return this.segments.includes(str.toSlugCase(value)); }
-  toArray  ()      { return this.segments; }
-  toString ()      { return this.#url.pathname; }
+  
+  append   (...values) { this.segments = [...this.segments, ...toSlugs(values)]; return this; }
+  prepend  (...values) { this.segments = [...toSlugs(values), ...this.segments]; return this; }
+  has      (value)     { return this.segments.includes(toSlug(value)); }
+  toArray  ()          { return this.segments; }
+  toString ()          { return this.#url.pathname; }
 }
 
 /**
