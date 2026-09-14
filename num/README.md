@@ -2,6 +2,15 @@
 
 small, dependency-free numeric helpers.
 
+## cdn
+
+```javascript
+import { clamp } from "https://esm.sh/jsr/@pulgasari/num";
+```
+```javascript
+import { clamp } from "https://esm.sh/jsr/@pulgasari/num@1.0.0";
+```
+
 ## install
 
 ```sh
@@ -17,15 +26,6 @@ yarn add jsr:@pulgasari/num
 npx jsr add @pulgasari/num
 ```
 
-## cdn
-
-```javascript
-import { clamp } from "https://esm.sh/jsr/@pulgasari/num";
-```
-```javascript
-import { clamp } from "https://esm.sh/jsr/@pulgasari/num@1.0.0";
-```
-
 ## usage
 
 ```js
@@ -38,4 +38,16 @@ percent(1, 4);               // 25
 round(3.14159, 2);           // 3.14
 snap(7, [0, 5, 10]);         // 5   — nearest of a set, or a fixed step size
 toNumber('42px', 0);         // 42  — parses, falls back on non-finite
+```
+
+```js
+import * as num from '@pulgasari/num';
+
+num.clamp(15, 0, 10);            // 10  — min/max are optional (open-ended if omitted)
+num.lerp(0, 100, 0.25);          // 25
+num.mapRange(5, 0, 10, 0, 100);  // 50
+num.percent(1, 4);               // 25
+num.round(3.14159, 2);           // 3.14
+num.snap(7, [0, 5, 10]);         // 5   — nearest of a set, or a fixed step size
+num.toNumber('42px', 0);         // 42  — parses, falls back on non-finite
 ```
