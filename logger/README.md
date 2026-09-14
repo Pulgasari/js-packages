@@ -1,14 +1,17 @@
 # @pulgasari/logger
 
 namespaced, colorized `console` wrapper with a runtime gate and child loggers.
-works in the browser (css colors) and in node (ansi, respects `NO_COLOR` and
+works in the browser (css-colors) and in node (ansi, respects `NO_COLOR` and
 non-tty output).
 
 ## install
 
 ```sh
-deno add jsr:@pulgasari/logger   # deno
-npx jsr add @pulgasari/logger    # npm / node / bun
+deno add jsr:@pulgasari/logger
+```
+
+```sh
+npx jsr add @pulgasari/logger
 ```
 
 ## usage
