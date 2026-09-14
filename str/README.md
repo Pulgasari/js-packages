@@ -5,8 +5,11 @@ string case transforms and a dual-use `str()` helper.
 ## install
 
 ```sh
-deno add jsr:@pulgasari/str   # deno
-npx jsr add @pulgasari/str    # npm / node / bun
+deno add jsr:@pulgasari/str
+```
+
+```sh
+npx jsr add @pulgasari/str
 ```
 
 ## usage
