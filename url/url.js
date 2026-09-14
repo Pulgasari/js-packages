@@ -1,12 +1,6 @@
 // @ts-self-types="./url.d.ts"
 // @pulgasari/url
 
-// thin, chainable wrapper around the native URL / URLSearchParams API.
-//   const u = url('/blog?page=2');
-//   u.path.append('My Post');      // -> /blog/my-post
-//   u.query.set('page', null);     // -> removes ?page
-//   u.toString();                  // -> https://example.com/blog/my-post
-
 // :::::: INTERNAL
 
 const toSlug = (value) => String(value)
@@ -18,22 +12,18 @@ const toSlug = (value) => String(value)
   .toLowerCase();
 
 const DEFAULT_BASE = 'http://localhost';
-
-const isNullish = sth => typeof sth === 'undefined' || typeof sth === 'null';
-const isSymbol  = sth => typeof sth === 'symbol';
-
-const arrayfied   = (value)  => Array.isArray(value) ? value : [value];
-const currentHref = ()       => (typeof window !== 'undefined' ? window.location.href : DEFAULT_BASE);    
-const toSlugs     = (values) => arrayfied(values).flat(Infinity).map(toSlug);
+const isNullish    = (value)  => typeof value === 'undefined' || typeof value === 'null';
+const isSymbol     = (value)  => typeof value === 'symbol';
+const arrayfied    = (value)  => Array.isArray(value) ? value : [value];
+const currentHref  = ()       => (typeof window !== 'undefined' ? window.location.href : DEFAULT_BASE);    
+const toSlugs      = (values) => arrayfied(values).flat(Infinity).map(toSlug);
 
 // :::::: MAIN
 
 class UrlPath {
   #url;
 
-  constructor (url) {
-    this.#url = url;
-  }
+  constructor (url) { this.#url = url; }
 
   get segments ()         { return this.#url.pathname.split('/').filter(Boolean); }
   set segments (segments) { this.#url.pathname = `/${segments.join('/')}`; }
@@ -51,7 +41,7 @@ class UrlPath {
   
   remove (...values) {
     const removable = new Set(toSlugs(values));
-    this.segments = this.segments.filter((segment) => !removable.has(segment));
+    this.segments = this.segments.filter(segment => !removable.has(segment));
     return this;
   }
   
@@ -98,9 +88,7 @@ const createQueryView = (url) => {
 class UrlQuery {
   #url; #values;
 
-  constructor (url) {
-    this.#url = url;
-  }
+  constructor (url) { this.#url = url; }
 
   get params () { return this.#url.searchParams; } // live params of the underlying URL
   get values () { return (this.#values ??= createQueryView(this.#url)); } // collision-free property view      
@@ -111,6 +99,8 @@ class UrlQuery {
 
     return this;
   }
+
+//set (key, value) { isNullish(value) ? this.delete(key) : this.params.set(key, String(value)); return this; }
   
   assign   (values) { for (const [key, value] of Object.entries(values)) this.set(key, value); return this; }         
 //assign   (values) { for (const key of values) this.set(key, values[key]); return this; }
