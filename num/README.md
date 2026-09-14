@@ -7,9 +7,14 @@ small, dependency-free numeric helpers.
 ```sh
 deno add jsr:@pulgasari/num
 ```
-
 ```sh
 npx jsr add @pulgasari/num
+```
+```sh
+pnpm add jsr:@pulgasari/num
+```
+```sh
+yarn add jsr:@pulgasari/num
 ```
 
 ## usage
