@@ -1,7 +1,11 @@
 // @ts-self-types="./CanonicalMap.d.ts"
 // @pulgasari/obj/CanonicalMap
 
+// :::::: IMPORT
+
 import { toCamelCase, toConstantCase, toKebabCase, toPascalCase, toSlugCase, toSnakeCase } from '@pulgasari/str';
+
+// :::::: INTERNAL
 
 const FORMS = {
   camel    : toCamelCase,    // userProfileStatus
@@ -18,6 +22,8 @@ const toEntries = (source) =>
     source == null                                  ? []
   : typeof source[Symbol.iterator] === 'function'   ? source
   : Object.entries(source);
+
+// :::::: MAIN
 
 class CanonicalMap extends Map {
   constructor (source, forms = ['camel', 'kebab', 'snake']) {
@@ -90,6 +96,8 @@ class CanonicalMap extends Map {
     return result;
   }
 }
+
+// :::::: EXPORT
 
 export { CanonicalMap };
 export default CanonicalMap;
