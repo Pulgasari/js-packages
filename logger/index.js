@@ -7,13 +7,13 @@ const NO_ANSI = IS_NODE && (!!process.env.NO_COLOR || !process.stdout?.isTTY);
 
 // variadic writers, get the styled prefix. api method -> console method
 const METHODS = {
-  debug: 'debug',
-  error: 'error',
-  info: 'info',
-  log: 'log',
-  success: 'log',
-  trace: 'trace',
-  warn: 'warn',
+  debug   : 'debug',
+  error   : 'error',
+  info    : 'info',
+  log     : 'log',
+  success : 'log',
+  trace   : 'trace',
+  warn    : 'warn',
 };
 
 // bring their own arg shape, so no prefix is possible -> bound and forwarded as is.
@@ -88,12 +88,12 @@ export class Logger {
   }
 
   // sub namespace inheriting palette, colors and the gate. options override per child
-  child(prefix, { color, colors, ...rest } = {}) {
+  child (prefix, { color, colors, ...rest } = {}) {
     return new Logger({
-      prefix: [this.#prefix, prefix].filter(Boolean).join(':'),
-      color: { ...this.#colors, ...(typeof color === 'string' ? mapAll(color) : color) },
-      colors: { ...this.#palette, ...colors },
-      debugger: this.#gated,
+      prefix   : [this.#prefix, prefix].filter(Boolean).join(':'),
+      color    : { ...this.#colors, ...(typeof color === 'string' ? mapAll(color) : color) },
+      colors   : { ...this.#palette, ...colors },
+      debugger : this.#gated,
       ...rest,
     });
   }
@@ -115,7 +115,7 @@ export class Logger {
   }
 
   // builds the whole api around a picker: (method name) => color
-  #api(pick) {
+  #api (pick) {
     const api = {};
     // getter, so the binding happens per access and the gate stays live
     const define = (name, get)       => Object.defineProperty(api, name, { get, enumerable: true });
