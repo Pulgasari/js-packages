@@ -5,8 +5,11 @@ thin, chainable wrapper around the native `URL` / `URLSearchParams` API.
 ## install
 
 ```sh
-deno add jsr:@pulgasari/url   # deno
-npx jsr add @pulgasari/url    # npm / node / bun
+deno add jsr:@pulgasari/url
+```
+
+```sh
+npx jsr add @pulgasari/url
 ```
 
 ## usage
@@ -30,5 +33,3 @@ delete q.sort;
 
 in the browser a relative input resolves against `window.location`; outside a
 browser pass an absolute url (or a base) since there is no ambient location.
-
-depends on `@pulgasari/is` and `@pulgasari/str`.
