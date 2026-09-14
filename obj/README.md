@@ -6,8 +6,11 @@ a chainable `obj()` sugar. ships `CanonicalMap` on a subpath.
 ## install
 
 ```sh
-deno add jsr:@pulgasari/obj   # deno
-npx jsr add @pulgasari/obj    # npm / node / bun
+deno add jsr:@pulgasari/obj
+```
+
+```sh
+npx jsr add @pulgasari/obj
 ```
 
 ## usage
