@@ -9,12 +9,14 @@
 
 // :::::: IMPORT
 
-import { isNullish, isSymbol } from '@pulgasari/is';
 import str from '@pulgasari/str';
 
 // :::::: INTERNAL
 
 const DEFAULT_BASE = 'http://localhost';
+
+const isNullish = sth => typeof sth === 'undefined' || typeof sth === 'null';
+const isSymbol  = sth => typeof sth === 'symbol';
 
 const arrayfied   = (value)  => Array.isArray(value) ? value : [value];
 const toSlugs     = (values) => arrayfied(values).flat(Infinity).map(str.toSlugCase);
@@ -22,10 +24,6 @@ const currentHref = () => (typeof window !== 'undefined' ? window.location.href 
 
 // :::::: MAIN
 
-/**
- * Path segment handling.
- * Always reads from and writes to the live URL instance — no cached state.
- */
 class UrlPath {
   #url;
 
@@ -48,20 +46,6 @@ class UrlPath {
     }
 
     this.segments = segments;
-    return this;
-  }
-  add (...values) {
-    const current = this.segments;
-    const set = new Set(current);
-  
-    for (const segment of toSlugs(values)) {
-      if (!set.has(segment)) {
-        set.add(segment);
-        current.push(segment);
-      }
-    }
-  
-    this.segments = current;
     return this;
   }
 
@@ -95,11 +79,10 @@ class UrlPath {
 const createQueryView = (url) => {
   const params = () => url.searchParams;
 
-  return new Proxy(Object.create(null), {
-    get (_target, key) {
-      // Keys are always strings, so symbols can never be data.
+  return new Proxy (Object.create(null), {
+    get (_target, key) { // keys are always strings, so symbols can never be data.
       if (key === Symbol.toPrimitive) return () => url.search;
-      if (typeof key === 'symbol')    return undefined;
+      if (isSymbol(key))              return undefined;
 
       return params().get(key) ?? undefined;
     },
@@ -134,14 +117,8 @@ const createQueryView = (url) => {
   });
 };
 
-/**
- * Query parameter handling.
- * Explicit methods instead of a Proxy, so parameters named "get", "set" or
- * "toString" cannot shadow the API.
- */
 class UrlQuery {
-  #url;
-  #values;
+  #url; #values;
 
   constructor (url) {
     this.#url = url;
@@ -150,19 +127,12 @@ class UrlQuery {
   get params () { return this.#url.searchParams; } // live params of the underlying URL
   get values () { return (this.#values ??= createQueryView(this.#url)); } // collision-free property view      
   
-  has    (key) { return this.params.has    (key); }
-  get    (key) { return this.params.get    (key); }
-  getAll (key) { return this.params.getAll (key); } // all values of a repeated parameter      
-
-  /** Sets a parameter. A nullish value removes it. */
   set (key, value) {
     if (isNullish(value)) this.params.delete(key);
     else this.params.set(key, String(value));
 
     return this;
   }
-
-  // set = (key, value) => isNullish(value) ? this.delete(key)
   
   assign (values) {
     for (const [key, value] of Object.entries(values)) this.set(key, value);
@@ -171,6 +141,9 @@ class UrlQuery {
 
   clear    ()    { this.#url.search = ''; return this; }
   delete   (key) { this.params.delete(key); return this; }
+  has      (key) { return this.params.has    (key); }
+  get      (key) { return this.params.get    (key); }
+  getAll   (key) { return this.params.getAll (key); } // all values of a repeated parameter      
   toObject ()    { return Object.fromEntries(this.params); }
   toString ()    { return this.#url.search; }
   
