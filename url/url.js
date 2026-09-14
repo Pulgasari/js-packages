@@ -14,16 +14,11 @@ import str from '@pulgasari/str';
 
 // :::::: INTERNAL
 
+const DEFAULT_BASE = 'http://localhost';
+
 const arrayfied   = (value)  => Array.isArray(value) ? value : [value];
 const toSlugs     = (values) => arrayfied(values).flat(Infinity).map(str.toSlugCase);
-const currentHref = ()       => typeof window === 'undefined' ? undefined : window.location.href;
-
-// Vorher:
-const currentHref = () => typeof window === 'undefined' ? undefined : window.location.href;
-
-// Nachher:
-const DEFAULT_BASE = 'http://localhost';
-const currentHref = () => (typeof window !== 'undefined' ? window.location.href : DEFAULT_BASE);
+const currentHref = () => (typeof window !== 'undefined' ? window.location.href : DEFAULT_BASE);    
 
 // :::::: MAIN
 
@@ -77,9 +72,9 @@ class UrlPath {
     return this;
   }
 
-  has      = (value) => this.segments.includes(str.toSlugCase(value));
-  toArray  = ()      => this.segments;
-  toString = ()      => this.#url.pathname;
+  has      (value) { return this.segments.includes(str.toSlugCase(value)); }
+  toArray  ()      { return this.segments; }
+  toString ()      { return this.#url.pathname; }
 }
 
 /**
@@ -120,7 +115,7 @@ const createQueryView = (url) => {
 
     has: (_target, key) => !isSymbol(key) && params().has(key),
 
-    deleteProperty(_target, key) {
+    deleteProperty (_target, key) {
       params().delete(key);
       return true;
     },
@@ -155,9 +150,9 @@ class UrlQuery {
   get params () { return this.#url.searchParams; } // live params of the underlying URL
   get values () { return (this.#values ??= createQueryView(this.#url)); } // collision-free property view      
   
-  has    = (key) => this.params.has    (key);
-  get    = (key) => this.params.get    (key);
-  getAll = (key) => this.params.getAll (key); // all values of a repeated parameter      
+  has    (key) { return this.params.has    (key); }
+  get    (key) { return this.params.get    (key); }
+  getAll (key) { return this.params.getAll (key); } // all values of a repeated parameter      
 
   /** Sets a parameter. A nullish value removes it. */
   set (key, value) {
@@ -174,14 +169,11 @@ class UrlQuery {
     return this;
   }
 
-  clear    = ()    => (this.#url.search = '', this);
-  delete   = (key) => (this.params.delete(key), this);
-  toObject = ()    => Object.fromEntries(this.params);
-  toString = ()    => this.#url.search;
-
-  clear  ()    { this.#url.search = ''; return this; }
-  delete (key) { this.params.delete(key); return this; }
-
+  clear    ()    { this.#url.search = ''; return this; }
+  delete   (key) { this.params.delete(key); return this; }
+  toObject ()    { return Object.fromEntries(this.params); }
+  toString ()    { return this.#url.search; }
+  
   [Symbol.iterator]() { return this.params[Symbol.iterator](); }
 }
 
