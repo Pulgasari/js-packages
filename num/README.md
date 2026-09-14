@@ -5,8 +5,11 @@ small, dependency-free numeric helpers.
 ## install
 
 ```sh
-deno add jsr:@pulgasari/num   # deno
-npx jsr add @pulgasari/num    # npm / node / bun
+deno add jsr:@pulgasari/num
+```
+
+```sh
+npx jsr add @pulgasari/num
 ```
 
 ## usage
