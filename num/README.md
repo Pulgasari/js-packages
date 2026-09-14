@@ -2,6 +2,8 @@
 
 small, dependency-free numeric helpers.
 
+published on JSR: https://jsr.io/@pulgasari/num
+
 ## cdn
 
 ```javascript
