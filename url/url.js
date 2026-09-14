@@ -31,29 +31,14 @@ class UrlPath {
     this.#url = url;
   }
 
-  /** @returns {string[]} path segments without empty entries */
-  get segments() {
-    return this.#url.pathname.split('/').filter(Boolean);
-  }
-
-  set segments(segments) {
-    this.#url.pathname = `/${segments.join('/')}`;
-  }
-
-  /** Appends the given values as slugified segments. */
-  append(...values) {
-    this.segments = [...this.segments, ...toSlugs(values)];
-    return this;
-  }
-
-  /** Prepends the given values as slugified segments. */
-  prepend(...values) {
-    this.segments = [...toSlugs(values), ...this.segments];
-    return this;
-  }
+  get segments ()         { return this.#url.pathname.split('/').filter(Boolean); }
+  set segments (segments) { this.#url.pathname = `/${segments.join('/')}`; }
+  
+  append  (...values) { this.segments = [...this.segments, ...toSlugs(values)]; return this; }
+  prepend (...values) { this.segments = [...toSlugs(values), ...this.segments]; return this; }
 
   /** Like append(), but skips segments that are already present. */
-  add(...values) {
+  add (...values) {
     const segments = this.segments;
 
     for (const segment of toSlugs(values)) {
@@ -65,15 +50,15 @@ class UrlPath {
   }
 
   /** Removes every occurrence of the given segments. */
-  remove(...values) {
+  remove (...values) {
     const removable = new Set(toSlugs(values));
     this.segments = this.segments.filter((segment) => !removable.has(segment));
     return this;
   }
 
-  has (value) { return this.segments.includes(str.toSlugCase(value)); }
-  toArray  () { return this.segments; }
-  toString () { return this.#url.pathname; }
+  has      = (value) => this.segments.includes(str.toSlugCase(value));
+  toArray  = ()      => this.segments;
+  toString = ()      => this.#url.pathname;
 }
 
 /**
@@ -95,15 +80,15 @@ const createQueryView = (url) => {
   const params = () => url.searchParams;
 
   return new Proxy(Object.create(null), {
-    get(_target, key) {
+    get (_target, key) {
       // Keys are always strings, so symbols can never be data.
       if (key === Symbol.toPrimitive) return () => url.search;
-      if (typeof key === 'symbol') return undefined;
+      if (typeof key === 'symbol')    return undefined;
 
       return params().get(key) ?? undefined;
     },
 
-    set(_target, key, value) {
+    set (_target, key, value) {
       if (isSymbol(key)) return false;
 
       if (isNullish(value)) params().delete(key);
@@ -153,8 +138,6 @@ class UrlQuery {
   get    = (key) => this.params.get    (key);
   getAll = (key) => this.params.getAll (key); // all values of a repeated parameter      
 
-  
-
   /** Sets a parameter. A nullish value removes it. */
   set (key, value) {
     if (isNullish(value)) this.params.delete(key);
@@ -164,8 +147,7 @@ class UrlQuery {
   }
 
   // set = (key, value) => isNullish(value) ? this.delete(key)
-
-  /** Sets many parameters at once: query.assign({ page: 2, sort: null }) */
+  
   assign (values) {
     for (const [key, value] of Object.entries(values)) this.set(key, value);
     return this;
@@ -180,12 +162,6 @@ class UrlQuery {
 }
 
 class Url {
-  /**
-   * @param {string|URL|{toString():string}} [input] absolute or relative URL,
-   *        defaults to the current document location
-   * @param {string|URL} [base] base for relative inputs, defaults to the
-   *        current document location
-   */
   constructor (input, base = currentHref()) {
     this.instance = new URL(input?.toString() ?? base, base);
     this.path     = new UrlPath  (this.instance);
@@ -205,5 +181,7 @@ class Url {
 
 // :::::: EXPORT
 
-export { Url };
-export const url = (input, base) => new Url(input, base);
+const url = (input, base) => new Url (input, base);
+
+export { Url, url };
+export default url;
