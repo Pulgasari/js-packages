@@ -88,7 +88,7 @@ export const dropByKey = (object, ...keys) => {
 };
 
 
-// :::::: TRANSFORM
+// ::: TRANSFORM
 
 export const transformKeys = (object, ...fns) => {
   return Object.fromEntries(
@@ -109,14 +109,14 @@ export const transformValues = (object, ...fns) => {
 };
 
 
-// :::::: CONVERSION
+// ::: CONVERSION
 
 export const 
 toEntries = object => Object.entries (object),
 toKeys    = object => Object.keys    (object),
 toValues  = object => Object.values  (object);
 
-// :::::: OBJ SUGAR
+// :::::: PROXY
 
 const methods = {
   assign,
@@ -135,7 +135,7 @@ const methods = {
   toValues,
 };
 
-export const obj = object => new Proxy({}, {
+const obj = object => new Proxy({}, {
   get (_, method) {
     const fn = methods[method];
 
@@ -145,4 +145,7 @@ export const obj = object => new Proxy({}, {
   }
 });
 
+// :::::: EXPORT
+
+export { obj };
 export default obj;
