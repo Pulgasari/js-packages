@@ -1,20 +1,35 @@
-# publishes every @pulgasari/* workspace member under js/packages to jsr.
 name: publish to jsr
 
 on:
   workflow_dispatch:
+    inputs:
+      package:
+        description: "Package to publish"
+        required: true
+        type: choice
+        options:
+          - is
+          - logger
+          - num
+          - obj
+          - str
+          - url
 
 jobs:
   publish:
     runs-on: ubuntu-latest
+
     permissions:
       contents: read
-      id-token: write # oidc token jsr uses for auth + provenance
+      id-token: write # OIDC token JSR uses for auth + provenance
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - name: publish workspace
-        working-directory: /
+
+      - name: Publish package
+        working-directory: ${{ inputs.package }}
         run: deno publish
