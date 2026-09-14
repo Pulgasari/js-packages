@@ -18,6 +18,13 @@ const arrayfied   = (value)  => Array.isArray(value) ? value : [value];
 const toSlugs     = (values) => arrayfied(values).flat(Infinity).map(str.toSlugCase);
 const currentHref = ()       => typeof window === 'undefined' ? undefined : window.location.href;
 
+// Vorher:
+const currentHref = () => typeof window === 'undefined' ? undefined : window.location.href;
+
+// Nachher:
+const DEFAULT_BASE = 'http://localhost';
+const currentHref = () => (typeof window !== 'undefined' ? window.location.href : DEFAULT_BASE);
+
 // :::::: MAIN
 
 /**
@@ -46,6 +53,20 @@ class UrlPath {
     }
 
     this.segments = segments;
+    return this;
+  }
+  add (...values) {
+    const current = this.segments;
+    const set = new Set(current);
+  
+    for (const segment of toSlugs(values)) {
+      if (!set.has(segment)) {
+        set.add(segment);
+        current.push(segment);
+      }
+    }
+  
+    this.segments = current;
     return this;
   }
 
@@ -157,6 +178,9 @@ class UrlQuery {
   delete   = (key) => (this.params.delete(key), this);
   toObject = ()    => Object.fromEntries(this.params);
   toString = ()    => this.#url.search;
+
+  clear  ()    { this.#url.search = ''; return this; }
+  delete (key) { this.params.delete(key); return this; }
 
   [Symbol.iterator]() { return this.params[Symbol.iterator](); }
 }
