@@ -1,7 +1,8 @@
 // @ts-self-types="./index.d.ts"
 // @pulgasari/str
 
-// Helper functions for word splitting and casing
+// :::::: INTERNAL
+
 const slugify = (value) => String(value)
   .replace(/ß/g, 'ss')
   .normalize('NFKD')
@@ -9,8 +10,6 @@ const slugify = (value) => String(value)
   .replace(/[^a-zA-Z0-9]+/g, '-')
   .replace(/^-+|-+$/g, '')
   .toLowerCase();
-
-const upperFirst = (word) => word.charAt(0).toUpperCase() + word.slice(1);
 
 const toWords = (value) => String(value ?? '')
   .replace(/([a-z\d])([A-Z])/g, '$1 $2')
@@ -21,6 +20,9 @@ const toWords = (value) => String(value ?? '')
   .split(' ')
   .filter(Boolean);
 
+const upperFirst = (word) => word.charAt(0).toUpperCase() + word.slice(1);
+
+// :::::: MAIN
 
 export const // Standalone exportable transform functions
 capitalize     = value => { const s = String(value ?? ''); return s.charAt(0).toUpperCase() + s.slice(1); },
@@ -41,6 +43,8 @@ unquote        = value => String(value ?? '').replace(/^(['"`])([\s\S]*)\1$/, '$
 export const 
 startsWith = (value, ...prefixes) => prefixes.some((prefix) => String(value ?? '').startsWith(prefix)),
   endsWith = (value, ...suffixes) => suffixes.some((suffix) => String(value ?? '').endsWith(suffix));
+
+// :::::: PROXY
 
 const methods = {
   capitalize,
@@ -82,5 +86,7 @@ export const str = Object.assign(
   },
   methods
 );
+
+// :::::: EXPORT
 
 export default str;
