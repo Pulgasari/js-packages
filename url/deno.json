@@ -2,5 +2,5 @@
   "name": "@pulgasari/url",
   "version": "1.0.0",
   "license": "MIT",
-  "exports": "./url.js"
+  "exports": "./index.js"
 }
