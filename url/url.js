@@ -38,7 +38,6 @@ class UrlPath {
   get segments ()         { return this.#url.pathname.split('/').filter(Boolean); }
   set segments (segments) { this.#url.pathname = `/${segments.join('/')}`; }
   
-  
   add (...values) {
     const segments = this.segments;
 
@@ -63,21 +62,6 @@ class UrlPath {
   toString ()          { return this.#url.pathname; }
 }
 
-/**
- * Property-access view over the query parameters.
- *
- * The proxy target is an empty null-prototype object: it carries no methods
- * and no inherited members, so every string key is data and nothing can be
- * shadowed. The API lives on UrlQuery, not in here.
- *
- *   const q = url('?page=2').query.values;
- *   q.page;          // '2'
- *   q.sort = 'asc';  // sets ?sort=asc
- *   q.page = null;   // removes ?page
- *   delete q.sort;
- *   'page' in q;     // false
- *   { ...q };        // { sort: 'asc' }
- */
 const createQueryView = (url) => {
   const params = () => url.searchParams;
 
@@ -100,21 +84,13 @@ const createQueryView = (url) => {
 
     has: (_target, key) => !isSymbol(key) && params().has(key),
 
-    deleteProperty (_target, key) {
-      params().delete(key);
-      return true;
-    },
+    deleteProperty (_target, key) { params().delete(key); return true; },
 
     ownKeys: () => [...new Set(params().keys())],
 
     getOwnPropertyDescriptor: (_target, key) =>
       !isSymbol(key) && params().has(key)
-        ? {
-            value: params().get(key),
-            writable: true,
-            enumerable: true,
-            configurable: true,
-          }
+        ? { value: params().get(key), configurable: true, enumerable: true, writable: true }
         : undefined,
   });
 };
@@ -136,18 +112,15 @@ class UrlQuery {
     return this;
   }
   
-  assign (values) {
-    for (const [key, value] of Object.entries(values)) this.set(key, value);
-    return this;
-  }
-
-  clear    ()    { this.#url.search = ''; return this; }
-  delete   (key) { this.params.delete(key); return this; }
-  has      (key) { return this.params.has    (key); }
-  get      (key) { return this.params.get    (key); }
-  getAll   (key) { return this.params.getAll (key); } // all values of a repeated parameter      
-  toObject ()    { return Object.fromEntries(this.params); }
-  toString ()    { return this.#url.search; }
+  assign   (values) { for (const [key, value] of Object.entries(values)) this.set(key, value); return this; }         
+//assign   (values) { for (const key of values) this.set(key, values[key]); return this; }
+  clear    ()       { this.#url.search = ''; return this; }
+  delete   (key)    { this.params.delete(key); return this; }
+  has      (key)    { return this.params.has    (key); }
+  get      (key)    { return this.params.get    (key); }
+  getAll   (key)    { return this.params.getAll (key); } // all values of a repeated parameter      
+  toObject ()       { return Object.fromEntries(this.params); }
+  toString ()       { return this.#url.search; }
   
   [Symbol.iterator]() { return this.params[Symbol.iterator](); }
 }
