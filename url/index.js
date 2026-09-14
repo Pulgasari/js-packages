@@ -1,4 +1,4 @@
-// @ts-self-types="./url.d.ts"
+// @ts-self-types="./index.d.ts"
 // @pulgasari/url
 
 // :::::: INTERNAL
