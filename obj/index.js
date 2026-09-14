@@ -78,6 +78,39 @@ deleteByPath = (object, path) => {
 
 /*
 // Fast non-allocating path lookup without split('.') arrays or TypeError on missing nodes
+resolvePath = (object, path) => {
+  if (object == null || typeof path !== 'string') {
+    return { target: undefined, key: undefined, value: undefined };
+  }
+
+  const lastDot = path.lastIndexOf('.');
+  
+  if (lastDot === -1) {
+    return { target: object, key: path, value: object[path] };
+  }
+
+  let current = object;
+  let start = 0;
+  let dotIndex = path.indexOf('.');
+
+  while (dotIndex !== lastDot) {
+    const k = path.slice(start, dotIndex);
+    current = current[k];
+    if (current == null) {
+      return { target: undefined, key: path.slice(lastDot + 1), value: undefined };
+    }
+    start = dotIndex + 1;
+    dotIndex = path.indexOf('.', start);
+  }
+
+  const parentKey = path.slice(start, lastDot);
+  const target = current[parentKey];
+  const key = path.slice(lastDot + 1);
+  const value = isObject(target) ? target[key] : undefined;
+
+  return { target, key, value };
+},
+
 getByPath = (object, path) => {
   if (object == null || typeof path !== 'string') return undefined;
   
