@@ -1,9 +1,9 @@
 # js-packages
 Collection of JavaScript packages I created for personal use.
 
-## Packages I created
-- @pulgasari/is
-- https://jsr.io/@pulgasari/is
+## Packages I create
+- @pulgasari/is https://jsr.io/@pulgasari/is
+- @pulgasari/str https://jsr.io/@pulgasari/str
 
 ## Packages I regularly use
 - SVG.js
