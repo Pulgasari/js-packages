@@ -121,8 +121,8 @@ class Url {
   set full (value) { this.instance.href = new URL (value, this.instance).href; }
   set hash (value) { this.instance.hash = value; }
 
-  clone    = () => new Url (this.full);
-  toString = () =>          this.full;
+  clone    () { return new Url (this.full); }
+  toString () { return          this.full;  }
 }
 
 // :::::: EXPORT
