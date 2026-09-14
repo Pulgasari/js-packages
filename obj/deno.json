@@ -1,0 +1,9 @@
+{
+  "name": "@pulgasari/obj",
+  "version": "1.0.0",
+  "license": "MIT",
+  "exports": {
+    ".": "./index.js",
+    "./CanonicalMap": "./CanonicalMap.js"
+  }
+}
