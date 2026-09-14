@@ -17,6 +17,8 @@ yarn add jsr:@pulgasari/num
 npx jsr add @pulgasari/num
 ```
 
+## cdn
+
 ```javascript
 import { clamp } from "https://esm.sh/jsr/@pulgasari/num";
 ```
