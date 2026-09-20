@@ -1,19 +1,4 @@
-/* @pulgasari/devtools
-
-adopted by boot.js through adoptStylesheet(), so it cascades after the host app's
-own author styles and needs no !important anywhere.
-
-almost everything is nested under #devtools, which is what lets the markup carry
-its own meaning: dl/dt/dd for key-value rows, ol/li for the log, menu for a
-button bar, header/nav/article/footer for the regions, small for a note, em for
-an empty state. a class only appears where the dom cannot say it — a state the
-browser has no attribute for, or a reusable component (.inspector) that renders
-in more than one panel.
-
-font-size is declared once on #devtools and inherited from there. font-family is
-declared on #devtools and on its descendants, which is not redundant — see the
-comment above that rule. no rule below sets either. */
-
+// @pulgasari/devtools
 
 :root {
   --color-plain : var(--fg);
@@ -33,8 +18,6 @@ body:has(#devtools) {
   #devtools { flex: 0; }
 }
 
-/* the panel sits above the app instead of below it. reversing the column moves
-   it without touching the dom order, so nothing else has to know about it */
 body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
 
 /* while picking, the page must not react to the tap that is doing the picking */
@@ -206,7 +189,7 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
   }
 
   input, select, textarea {
-    padding    : 0.35em 0.5em;
+    padding    : 0.5em;
     border     : 1px solid #fff2;
     background : #0003;
     color      : inherit;
@@ -220,7 +203,7 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
   /* a toolbar row: search field plus the buttons that act on it */
   header {
     display    : flex;
-    gap        : 0.4em;
+    gap        : 0.5em;
     align-items: center;
     flex       : none;
 
@@ -284,7 +267,7 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
   /* :::: meters :::::::::::::::::::::::::::::::::::::::::::::::: */
 
   aufbau-progress {
-    --progress-size: 0.4em;
+    --progress-size: 1rem;
     background     : #fff1;
     overflow       : hidden;
 
