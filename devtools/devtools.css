@@ -1,10 +1,13 @@
 // @pulgasari/devtools
 
 :root {
-  --color-plain : var(--fg);
-  --color-error : var(--accent, #ff5555); 
-  --color-info  : #8be9fd;
-  --color-warn  : var(--accent-2, #f1fa8c);
+  --color-debug  : var(--fg);
+  --color-error  : red; 
+  --color-info   : #8be9fd;
+  --color-input  : var(--fg);
+  --color-plain  : var(--fg);
+  --color-result : var(--fg);
+  --color-warn   : orange;
 }
 
 /* ── the three things that live outside #devtools ─────────────────────────── */
@@ -70,23 +73,16 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
   background     : color-mix(in oklch, var(--bg), black 20%);
   display        : flex;
   flex-flow      : column;
-  /* the cap sits on the whole panel, not on the open section: capping the section
-     alone lets a long one push the menu off screen, and the menu is the only way
-     back out of it */
   max-block-size : var(--dt-height, 60dvh);
   font-size      : var(--dt-font, 13px);
   line-height    : 1.45;
 
-  /* the tab bar: panel tabs in one group, actions that are not panels in the
-     other, pushed to opposite edges */
   > menu {
     display        : flex;
     justify-content: space-between;
     gap            : 0.5rem;
     padding        : 0.5rem;
     font-size      : 2rem;
-    /* <menu> is a list element: without this the ua default margin-block of 1em
-       adds 64px of dead space around the icon row at this font size */
     margin         : 0;
     flex           : none;
 
@@ -375,7 +371,7 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
 
   /* :::: console :::::::::::::::::::::::::::::::::::::::::::::::: */
 
-  > section#devtools-console {
+  #devtools-console {
     /* the level filters */
     > menu {
       display  : flex;
@@ -386,19 +382,19 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
 
       button {
         display       : flex;
-        align-items   : center;
-        gap           : 0.25em;
-        padding       : 0.25rem;
-        min-block-size: 0;
-        background    : transparent;
-        opacity       : 0.75;
-        border: 1px solid currentcolor;
-        border-radius: unset;
+        align-items    : center;
+        gap            : 0.25em;
+        padding        : 0.25rem;
+        min-block-size : 0;
+        background     : transparent;
+        opacity        : 0.75;
+        border         : 1px solid currentcolor;
+        border-radius  : unset;
         flex: 1;
         justify-content: space-between;
   
-        background-color: var(--bgc)!important;
-        color: var(--fgc)!important;
+        background-color : var(--bgc)!important;
+        color            : var(--fgc)!important;
 
         &[aria-pressed="true"] { 
           opacity: 1; color: inherit; 
@@ -456,26 +452,27 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
           align-self : flex-start;
           font-size  : 1.2em;
 
-          aufbau-icon { cursor: pointer; }
+          aufbau-icon         { cursor: pointer; }
           aufbau-icon[hidden] { display: none; }
         }
 
         /* the count badge on a collapsed repeat */
         > small:not(:empty) {
-          flex                : none;
-          align-self          : flex-start;
-          padding             : 0 0.4em;
-          background          : #fff2;
+          flex       : none;
+          align-self : flex-start;
           font-variant-numeric: tabular-nums;
         }
 
         time { color: var(--mix-600, #666); margin-inline-end: 0.5em; }
-
-        &[data-level="error"]  { background: color-mix(in oklch, transparent, var(--accent,   #ff5555) 12%); color: var(--accent,   #ff5555); }
-        &[data-level="warn"]   { background: color-mix(in oklch, transparent, var(--accent-2, #f1fa8c) 10%); color: var(--accent-2, #f1fa8c); }
-        &[data-level="debug"]  { color: var(--mix-500, #888); }
-        &[data-level="input"]  { color: var(--mix-400, #999); }
-        &[data-level="result"] { color: var(--accent-3, #50fa7b); }
+      
+        background : color-mix(in oklch, transparent, var(--color) 10%); 
+        color      : var(--color);
+      
+        &[data-level="error"]  { --color: var(--color-error); }
+        &[data-level="warn"]   { --color: var(--color-warn); }
+        &[data-level="debug"]  { --color: var(--color-debug); }
+        &[data-level="input"]  { --color: var(--color-input); }
+        &[data-level="result"] { --color: var(--color-result); }
       }
     }
 
@@ -526,7 +523,7 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
           &[aria-selected="true"] { background: var(--accent-25, #fff2); outline: 1px solid var(--accent, #ff79c6); }
         }
 
-        &[open] > summary::before { rotate: 135deg; }
+        &[open]      > summary::before { rotate: 135deg; }
         &[data-leaf] > summary::before { opacity: 0; }
 
         > :not(summary) {
@@ -537,7 +534,7 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
       }
 
       div[data-node] {
-        padding    : 0.15em 0.2em;
+        padding    : 0.25em;
         white-space: nowrap;
         color      : var(--mix-600, #777);
         font-style : italic;
