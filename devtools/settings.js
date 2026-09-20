@@ -12,15 +12,29 @@ const KEY = 'devtools:settings';
 const CODE_THEMES = ['dracula', 'github-dark', 'nord', 'monokai', 'atom-one-dark', 'tokyo-night-dark', 'github'];
 
 export const SPEC = {
-  panelHeight : { type: 'integer', label: 'panel height',    min: 25, max: 85, step: 5, unit: 'dvh', default: 60 },
-  fontSize    : { type: 'integer', label: 'font size',       min: 10, max: 20, step: 1, unit: 'px',  default: 13 },
-  logLimit    : { type: 'integer', label: 'console buffer',  min: 100, max: 2000, step: 100, unit: 'entries', default: 500 },
-  timestamps  : { type: 'boolean', label: 'timestamps',      default: false },
-  dedupe      : { type: 'boolean', label: 'collapse repeats', default: true },
-  wrapLines   : { type: 'boolean', label: 'wrap long lines', default: true },
-  pollMs      : { type: 'integer', label: 'data poll',       min: 250, max: 5000, step: 250, unit: 'ms', default: 1000 },
-  codeTheme   : { type: 'enum',    label: 'code theme',      values: CODE_THEMES, default: 'dracula' },
+  // ui/general
+  position    : { section: 'ui', type: 'enum',    label: 'panel position',  values: ['bottom', 'top'], default: 'bottom' },
+  panelHeight : { section: 'ui', type: 'integer', label: 'panel height',    min: 25, max: 85, step: 5, unit: 'dvh', default: 60 },
+  fontSize    : { section: 'ui', type: 'integer', label: 'font size',       min: 10, max: 20, step: 1, unit: 'px',  default: 13 },
+
+  // console
+  logLimit    : { section: 'console', type: 'integer', label: 'buffer',            min: 100, max: 2000, step: 100, unit: 'entries', default: 500 },
+  timestamps  : { section: 'console', type: 'boolean', label: 'timestamps',        default: false },
+  dedupe      : { section: 'console', type: 'boolean', label: 'collapse repeats',  default: true },
+  wrapLines   : { section: 'console', type: 'boolean', label: 'wrap long lines',   default: true },
+
+  // css
+  codeTheme   : { section: 'css', type: 'enum', label: 'code theme', values: CODE_THEMES, default: 'dracula' },
+
+  // data
+  pollMs      : { section: 'data', type: 'integer', label: 'poll interval', min: 250, max: 5000, step: 250, unit: 'ms', default: 1000 },
 };
+
+/** spec keys grouped by section, in the order the panel renders them */
+export const SECTIONS = ['ui', 'console', 'css', 'data'].map(name => [
+  name,
+  Object.entries(SPEC).filter(([, entry]) => entry.section === name),
+]);
 
 const DEFAULTS = Object.fromEntries(Object.entries(SPEC).map(([key, entry]) => [key, entry.default]));
 

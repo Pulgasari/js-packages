@@ -10,8 +10,9 @@ an empty state. a class only appears where the dom cannot say it — a state the
 browser has no attribute for, or a reusable component (.inspector) that renders
 in more than one panel.
 
-font-size and font-family are declared once on #devtools and inherited from
-there. no rule below sets either. */
+font-size is declared once on #devtools and inherited from there. font-family is
+declared on #devtools and on its descendants, which is not redundant — see the
+comment above that rule. no rule below sets either. */
 
 /* ── the three things that live outside #devtools ─────────────────────────── */
 
@@ -24,8 +25,12 @@ body:has(#devtools) {
   #devtools { flex: 0; }
 }
 
+/* the panel sits above the app instead of below it. reversing the column moves
+   it without touching the dom order, so nothing else has to know about it */
+body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
+
 /* while picking, the page must not react to the tap that is doing the picking */
-:root.dt-picking, :root.dt-picking * {
+:root[data-dt-picking], :root[data-dt-picking] * {
   cursor     : crosshair !important;
   user-select: none !important;
 }
@@ -33,12 +38,18 @@ body:has(#devtools) {
 /* the element highlight sits on <body>, so the panel's overflow cannot clip it.
    pointer-events stay off: pick mode reads elementFromPoint(), and a highlight
    that could be hit would return itself for every tap */
+/* the descendant selector is not redundant: a host app with a `* { font-family }`
+   rule — zugriff has one — sets the family on every element directly, and a
+   declaration beats an inherited value however specific the inherited one was */
+#devtools-highlight, #devtools-highlight * {
+  font-family: var(--font-code, var(--font-family-mono, ui-monospace, monospace));
+}
+
 #devtools-highlight {
   position      : fixed;
   inset         : 0;
   z-index       : 2147483646;
   pointer-events: none;
-  font-family   : var(--font-family-mono, ui-monospace, monospace);
   font-size     : 11px;
 
   > div {
@@ -58,6 +69,12 @@ body:has(#devtools) {
 
 /* ── the panel ────────────────────────────────────────────────────────────── */
 
+/* same reason as above: inheriting from #devtools is not enough against a
+   universal rule in the host page, so every descendant is named */
+#devtools, #devtools * {
+  font-family: var(--font-code, var(--font-family-mono, ui-monospace, monospace));
+}
+
 #devtools {
   background     : color-mix(in oklch, var(--bg), black 20%);
   display        : flex;
@@ -66,20 +83,30 @@ body:has(#devtools) {
      alone lets a long one push the menu off screen, and the menu is the only way
      back out of it */
   max-block-size : var(--dt-height, 60dvh);
-  font-family    : var(--font-family-mono, ui-monospace, monospace);
   font-size      : var(--dt-font, 13px);
   line-height    : 1.45;
 
-  /* the tab bar */
+  /* the tab bar: panel tabs in one group, actions that are not panels in the
+     other, pushed to opposite edges */
   > menu {
-    display  : flex;
-    gap      : 0.5rem;
-    padding  : 0.5rem;
-    font-size: 2rem;
+    display        : flex;
+    justify-content: space-between;
+    gap            : 0.5rem;
+    padding        : 0.5rem;
+    font-size      : 2rem;
     /* <menu> is a list element: without this the ua default margin-block of 1em
        adds 64px of dead space around the icon row at this font size */
-    margin   : 0;
-    flex     : none;
+    margin         : 0;
+    flex           : none;
+
+    > li { display: flex; gap: 0.5rem; }
+
+    aufbau-icon {
+      cursor: pointer;
+      /* aufbau-icon is a box masked by the svg and coloured with currentColor,
+         so the active state is a plain colour change */
+      &[aria-pressed="true"] { color: var(--accent, #ff79c6); }
+    }
   }
 
   /* the open panel takes what is left and scrolls. shrink, never grow — a short

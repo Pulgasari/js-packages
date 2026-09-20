@@ -9,7 +9,7 @@
 // change if that trade ever stops being worth it.
 
 import createElement from '@domina/methods/createElement.js';
-import settings, { SPEC } from '../settings.js';
+import settings, { SECTIONS } from '../settings.js';
 
 const el = createElement;
 
@@ -45,21 +45,30 @@ function control (key, entry, value) {
 export function createSettingsPanel () {
   const $body = el('div'); // rebuilt wholesale on reset, so it keeps a container
 
+  const NOTES = {
+    console: 'the buffer only grows from here on — entries already dropped are gone, and the page-side recorder keeps its own fixed cap, so the history available at mount is whatever that held.',
+  };
+
   const build = () => {
     const values = settings.all();
 
-    // dt/dd rather than a <label> per row: the dl is what aligns the two columns,
-    // and a control inside dd is still reachable by tapping it
-    $body.replaceChildren(el('dl', {}, ...Object.entries(SPEC).flatMap(([key, entry]) => [
-      el('dt', {}, el('label', { htmlFor: `dt-set-${key}`, textContent: entry.label ?? key })),
-      el('dd', {}, control(key, entry, values[key])),
-    ])));
+    // grouped like the data panel, and open by default: there are few enough
+    // settings that hiding them behind a tap costs more than it saves
+    $body.replaceChildren(...SECTIONS.map(([name, entries]) => el('details', { open: true },
+      el('summary', {}, el('span', { textContent: name }), el('small', { textContent: String(entries.length) })),
+      el('div', {},
+        // dt/dd rather than a <label> per row: the dl is what aligns the two
+        // columns, and a control inside dd is still reachable by tapping it
+        el('dl', {}, ...entries.flatMap(([key, entry]) => [
+          el('dt', {}, el('label', { htmlFor: `dt-set-${key}`, textContent: entry.label ?? key })),
+          el('dd', {}, control(key, entry, values[key])),
+        ])),
+        ...(NOTES[name] ? [el('small', { textContent: NOTES[name] })] : []),
+      ),
+    )));
 
-    $body.append(
-      el('small', { textContent:
-        'panel height and font size apply immediately. the console buffer only grows from here on — entries already dropped are gone, and the page-side recorder keeps its own fixed cap, so the history available at mount is whatever that held.' }),
-      el('div', {}, el('button', { type: 'button', textContent: 'reset to defaults', onClick: () => settings.reset() })),
-    );
+    $body.append(el('div', {},
+      el('button', { type: 'button', textContent: 'reset to defaults', onClick: () => settings.reset() })));
   };
 
   build();
