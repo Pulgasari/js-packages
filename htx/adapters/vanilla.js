@@ -12,6 +12,8 @@
 //  2. svg. document.createElement('svg') makes an HTMLUnknownElement, so the
 //     element renders nothing and its attributes are lowercased on the way in.
 
+// :::::: IMPORT
+
 import { updateElement } from '@domina/methods/updateElement.js';
 import { createHtml }    from '../index.js';
 
@@ -19,7 +21,12 @@ export const Fragment = Symbol('htx.fragment');
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
+// :::::: HELPERS
+
 const isFn = (value) => typeof value === 'function';
+
+// :::::: SVG SONDERBEHANDLUNG
+// (gehört evtl. direkt in @domina gelöst?)
 
 /*
 tags that only exist in svg. the ones shared with html — a, script, style,
@@ -62,8 +69,11 @@ export function h (type, props, ...children) {
 const htx = createHtml(h, Fragment, { memo: false });
 const createVanillaHtml = (options) => createHtml(h, Fragment, { memo: false, ...options });
 
-// aliases
+// :::::: ALIASES
+
 const html = htx;
+
+// :::::: EXPORT
 
 export {
   html, createVanillaHtml,
