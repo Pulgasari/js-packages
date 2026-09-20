@@ -14,6 +14,14 @@ font-size is declared once on #devtools and inherited from there. font-family is
 declared on #devtools and on its descendants, which is not redundant — see the
 comment above that rule. no rule below sets either. */
 
+
+:root {
+  --color-plain : var(--fg);
+  --color-error : var(--accent, #ff5555); 
+  --color-info  : #8be9fd;
+  --color-warn  : var(--accent-2, #f1fa8c);
+}
+
 /* ── the three things that live outside #devtools ─────────────────────────── */
 
 body:has(#devtools) {
@@ -396,23 +404,35 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
       button {
         display       : flex;
         align-items   : center;
-        gap           : 0.35em;
-        padding       : 0.25em 0.5em;
+        gap           : 0.25em;
+        padding       : 0.25rem;
         min-block-size: 0;
         background    : transparent;
-        color         : var(--mix-600, #777);
-        /* an off filter stays legible: it is a switch, not a disabled control */
-        opacity       : 0.5;
+        opacity       : 0.75;
+        border: 1px solid currentcolor;
+        border-radius: unset;
+        flex: 1;
+  
+        background-color: var(--bgc)!important;
+        color: var(--fgc)!important;
 
-        small { padding: 0 0.35em; background: #fff2; color: inherit; font-variant-numeric: tabular-nums; }
-
-        &[aria-pressed="true"] { opacity: 1; color: inherit; background: #fff1; }
-        &[aria-pressed="true"][data-level="error"] { color: var(--accent,   #ff5555); border-color: currentColor; }
-        &[aria-pressed="true"][data-level="warn"]  { color: var(--accent-2, #f1fa8c); border-color: currentColor; }
-        &[aria-pressed="true"][data-level="info"]  { color: #8be9fd; border-color: currentColor; }
+        &[aria-pressed="true"] { 
+          opacity: 1; color: inherit; 
+          --bgc: white; 
+          --fgc: var(--bg);
+          &[data-level="error"] { --bgc: var(--color-error); }
+          &[data-level="info"]  { --bgc: var(--color-info); }
+          &[data-level="warn"]  { --bgc: var(--color-warn); }
+        }
+  
+        &[aria-pressed="false"] {
+          &[data-level="error"] { --fgc: var(--color-error); }
+          &[data-level="info"]  { --fgc: var(--color-info); }
+          &[data-level="warn"]  { --fgc: var(--color-warn); }
+        }
       }
     }
-
+    
     /* the log, and the one scroll container inside the panel */
     > ol {
       flex               : 1;
