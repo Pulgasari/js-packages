@@ -24,10 +24,10 @@ const taps = {
 const $devtools = createElement('aside', { id: 'devtools' });
 const $panels = {
   // elements
-  console : createElement('section', { class: 'hidden', id: 'devtools-panel-consosle' }),        
-  css     : createElement('section', { class: 'hidden', id: 'devtools-panel-css' }),
-  dom     : createElement('section', { class: 'hidden', id: 'devtools-panel-css' }),
-  style   : createElement('section', { class: 'hidden', id: 'devtools-panel-css' }),
+  console : createElement('section', { className: 'hidden', id: 'devtools-console' }),        
+  css     : createElement('section', { className: 'hidden', id: 'devtools-css' }),
+  dom     : createElement('section', { className: 'hidden', id: 'devtools-dom' }),
+  style   : createElement('section', { className: 'hidden', id: 'devtools-style' }),
   // api
   hide   : (key)        => $panels[key].classList.add('hidden'),
   show   : (key)        => $panels[key].classList.remove('hidden'),
@@ -41,7 +41,7 @@ for (const key in taps) {
   //const $icon = createIcon(taps[key], { onclick: $panels.toggle(key) });
   const $icon = createElement('aufbau-icon', {
     icon    : taps[key], 
-    onclick : $panels.toggle(key),
+    onClick : $panels.toggle(key),
   });
   $menu.append($icon);
 }
@@ -55,6 +55,13 @@ $devtools.append(
 );
 
 document.body.append($devtools);
+
+$code = createElement('aufbau-code', { lang: 'css', placeholder: 'enter css code ...' });    
+$panels.css.append($code);
+
+$panels.console.innerHTML = '<i>coming soon ...</i>';
+$panels.dom.innerHTML     = '<i>coming soon ...</i>';
+$panels.style.innerHTML   = '<i>coming soon ...</i>';
 
 
 
