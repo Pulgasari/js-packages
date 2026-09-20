@@ -502,3 +502,152 @@ body:has(#devtools) {
 }
 
 .dt-run { flex: none; }
+
+/* :::::: dom panel :::::::::::::::::::::::::::::::::::::::::::: */
+
+.dt-dom { display: flex; flex-flow: column; gap: 0.3em; }
+
+.dt-dom .dt-filter input { flex: 1; }
+
+.dt-btn.is-armed {
+  border-color: var(--accent-3, #50fa7b);
+  color       : var(--accent-3, #50fa7b);
+  background  : color-mix(in oklch, transparent, var(--accent-3, #50fa7b) 15%);
+}
+
+/* while picking, the page must not react to the tap that is doing the picking */
+:root.dt-picking, :root.dt-picking * {
+  cursor      : crosshair !important;
+  user-select : none !important;
+}
+
+.dt-tree {
+  max-block-size     : 40dvh;
+  overflow           : auto;
+  overscroll-behavior: contain;
+  font-family        : var(--font-family-mono, ui-monospace, monospace);
+  font-size          : var(--dt-font, 13px);
+  line-height        : 1.5;
+  border             : 1px solid #fff1;
+  border-radius      : 0.3em;
+  padding            : 0.3em;
+}
+
+.dt-tree-node { display: block; }
+
+.dt-tree-node > summary,
+.dt-tree-row {
+  display    : flex;
+  align-items: center;
+  gap        : 0.3em;
+  list-style : none;
+  cursor     : pointer;
+  white-space: nowrap;
+  /* a tap target, not a 10px triangle */
+  padding    : 0.15em 0.2em;
+  border-radius: 0.2em;
+}
+
+.dt-tree-node > summary::-webkit-details-marker { display: none; }
+.dt-tree-node > summary::marker                 { content: ''; }
+
+.dt-tree-node > summary::before {
+  content     : '';
+  flex        : none;
+  inline-size : 0.4em;
+  block-size  : 0.4em;
+  border      : 1px solid currentColor;
+  border-width: 1px 1px 0 0;
+  rotate      : 45deg;
+  opacity     : 0.6;
+  transition  : rotate 120ms ease;
+}
+
+.dt-tree-node[open] > summary::before { rotate: 135deg; }
+.dt-tree-node.is-leaf > summary::before { opacity: 0; }
+
+.dt-tree-node > :not(summary) {
+  margin-inline-start : 0.9em;
+  border-inline-start : 1px solid #fff1;
+  padding-inline-start: 0.4em;
+}
+
+.dt-tree-tag { color: #8be9fd; }
+.dt-tree-row.is-text    { color: var(--fg, #f8f8f2); opacity: 0.8; cursor: default; }
+.dt-tree-row.is-comment { color: var(--mix-600, #777); font-style: italic; cursor: default; }
+.dt-tree-row.is-empty   { color: var(--mix-600, #777); font-style: italic; cursor: default; }
+
+.dt-tree-row.is-selected {
+  background: var(--accent-25, #fff2);
+  outline   : 1px solid var(--accent, #ff79c6);
+}
+
+/* ── detail view */
+
+.dt-detail-head {
+  display    : flex;
+  align-items: center;
+  gap        : 0.4em;
+  padding-block: 0.3em;
+}
+
+.dt-path {
+  flex         : 1;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+  font-size    : 0.8rem;
+  color        : var(--accent-2, #f1fa8c);
+}
+
+.dt-rule {
+  border-block-start: 1px solid #fff1;
+  padding-block     : 0.3em;
+}
+
+.dt-rule-head {
+  display        : flex;
+  gap            : 0.5em;
+  justify-content: space-between;
+  align-items    : baseline;
+  font-size      : 0.8rem;
+}
+
+.dt-rule-head code { color: var(--accent-3, #50fa7b); overflow-wrap: anywhere; }
+.dt-rule-src       { flex: none; color: var(--mix-600, #777); font-size: 0.9em; }
+
+.dt-rule-body {
+  margin     : 0.2em 0 0;
+  font-size  : 0.75rem;
+  color      : var(--mix-300, #ccc);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ── on-page highlight, appended to <body> so panel overflow cannot clip it */
+
+#devtools-highlight {
+  position      : fixed;
+  inset         : 0;
+  z-index       : 2147483646;
+  pointer-events: none;
+}
+
+#devtools-highlight.hidden { display: none; }
+
+.dt-hl-box {
+  position  : fixed;
+  background: color-mix(in oklch, transparent, #8be9fd 25%);
+  outline   : 1px solid #8be9fd;
+}
+
+.dt-hl-label {
+  position     : fixed;
+  padding      : 0.1em 0.4em;
+  border-radius: 0.2em;
+  background   : #8be9fd;
+  color        : #000;
+  font-family  : var(--font-family-mono, ui-monospace, monospace);
+  font-size    : 11px;
+  line-height  : 1.6;
+  white-space  : nowrap;
+}

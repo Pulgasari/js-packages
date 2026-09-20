@@ -12,11 +12,128 @@
 
 import createElement from '@domina/methods/createElement.js';
 
-import settings          from '../settings.js';
-import { inspect }      from './inspect.js';
-import { formatParts, signature } from './format.js';
+import settings                from '../settings.js';
+import { inspect, preview }    from '../inspector.js';
 
 const el = createElement;
+
+// :::::: %c STYLING :::::::::::::::::::::::::::::::::::::::::::::
+
+// a logged string reaches the panel as untrusted text — it can come from a
+// dependency, a server payload or a pasted value. only properties that change how
+// the run of text looks are allowed through, so no %c can move, size or cover the
+// panel's own ui
+const STYLE_PROPS = new Set([
+  'color', 'background', 'background-color', 'font-weight', 'font-style',
+  'font-size', 'font-family', 'text-decoration', 'text-transform', 'padding',
+  'border-radius', 'opacity',
+]);
+
+function safeStyle (css) {
+  const out = [];
+
+  for (const rule of String(css).split(';')) {
+    const at = rule.indexOf(':');
+    if (at < 0) continue;
+
+    const prop  = rule.slice(0, at).trim().toLowerCase();
+    const value = rule.slice(at + 1).trim();
+
+    // url() and expression() are the ways a style string reaches back out
+    if (!STYLE_PROPS.has(prop) || /url\s*\(|expression\s*\(|[<>]/i.test(value)) continue;
+    out.push(`${prop}:${value}`);
+  }
+
+  return out.join(';');
+}
+
+// :::::: FORMAT SPECIFIERS :::::::::::::::::::::::::::::::::::::::
+
+/*
+splits a console call into a list of parts:
+
+  { kind: 'text',  text, style }   a run of plain text, optionally %c styled
+  { kind: 'value', value }         an argument rendered as a preview + inspector
+
+console only treats the first argument as a format string, and only substitutes
+as many specifiers as it has arguments for — a leftover %s stays literal.
+*/
+function formatParts (args) {
+  const parts = [];
+  let style   = '';
+
+  const text = (chunk) => {
+    if (!chunk) return;
+    const last = parts[parts.length - 1];
+    // merge consecutive runs that share a style, so one log line is not split
+    // into a dozen spans
+    if (last?.kind === 'text' && last.style === style) last.text += chunk;
+    else parts.push({ kind: 'text', text: chunk, style });
+  };
+
+  const [first, ...rest] = args;
+
+  if (typeof first !== 'string' || !first.includes('%')) {
+    args.forEach((value, index) => {
+      if (index) text(' ');
+      typeof value === 'string' ? text(value) : parts.push({ kind: 'value', value });
+    });
+    return parts;
+  }
+
+  let buffer = '';
+  let next   = 0;
+
+  for (let i = 0; i < first.length; i++) {
+    if (first[i] !== '%' || i === first.length - 1) { buffer += first[i]; continue; }
+
+    const token = first[i + 1];
+
+    if (token === '%') { buffer += '%'; i++; continue; }
+    if (!'sdifoOcj'.includes(token) || next >= rest.length) { buffer += first[i]; continue; }
+
+    const value = rest[next];
+    i++;
+
+    if (token === 'c') { text(buffer); buffer = ''; style = safeStyle(value); next++; continue; }
+
+    next++;
+
+    switch (token) {
+      case 's': buffer += typeof value === 'string' ? value : preview(value, 1); break;
+      case 'd':
+      case 'i': buffer += typeof value === 'bigint' ? `${value}n` : String(Math.trunc(Number(value))); break;
+      case 'f': buffer += String(Number(value)); break;
+      // %o/%O/%j hand the argument to the inspector rather than stringifying it,
+      // which is the whole reason they exist
+      default : text(buffer); buffer = ''; parts.push({ kind: 'value', value });
+    }
+  }
+
+  text(buffer);
+
+  // a %c run ends with the format string, so the leftovers below are unstyled
+  style = '';
+
+  // anything the format string had no specifier for is appended, as console does
+  for (let i = next; i < rest.length; i++) {
+    text(' ');
+    typeof rest[i] === 'string' ? text(rest[i]) : parts.push({ kind: 'value', value: rest[i] });
+  }
+
+  return parts;
+}
+
+/** a cheap signature for collapsing repeated lines, without building previews */
+function signature (level, args) {
+  try {
+    return level + '\u0000' + args.map(arg =>
+      arg !== null && typeof arg === 'object' ? '\u0002obj' : typeof arg === 'symbol' ? arg.toString() : String(arg)
+    ).join('\u0001');
+  } catch {
+    return level + '\u0000<unreadable>';
+  }
+}
 
 const LEVELS = ['log', 'info', 'warn', 'error', 'debug'];
 
@@ -120,11 +237,14 @@ keeps its meaning.
 */
 const persist = (source) => source.replace(/^(\s*)(?:let|const)\s/, '$1var ');
 
-// $_ and $$ are installed only if the page has not already claimed them
+// installed only where the page has not already claimed the name. $0 is declared
+// here so typing it before anything is selected reads as undefined rather than
+// throwing; the dom panel is what actually assigns it
 function installHelpers () {
   try {
     if (!('$$' in globalThis)) globalThis.$$ = (selector, root = document) => [...root.querySelectorAll(selector)];
     if (!('$_' in globalThis)) globalThis.$_ = undefined;
+    if (!('$0' in globalThis)) globalThis.$0 = undefined;
   } catch {}
 }
 

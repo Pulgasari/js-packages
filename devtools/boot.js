@@ -8,6 +8,7 @@ import settings                from './settings.js';
 import { createConsolePanel }  from './panels/console.js';
 import { createCssPanel }      from './panels/css.js';
 import { createDataPanel }     from './panels/data.js';
+import { createDomPanel }      from './panels/dom.js';
 import { createSettingsPanel } from './panels/settings.js';
 
 autoloader();
@@ -26,7 +27,7 @@ without a factory is a placeholder and just renders its note.
 */
 const registry = {
   console  : { icon: 'mdi:console-line',            create: createConsolePanel },
-  dom      : { icon: 'mdi:file-tree' },
+  dom      : { icon: 'mdi:file-tree',               create: createDomPanel },
   css      : { icon: 'ph:file-css-fill',            create: createCssPanel },
   data     : { icon: 'mdi:database-outline',        create: createDataPanel },
   style    : { icon: 'dashicons:admin-appearance' },

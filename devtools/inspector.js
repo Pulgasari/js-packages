@@ -1,20 +1,102 @@
-// @pulgasari/devtools/panels/inspect.js
+// @pulgasari/devtools/inspector.js
 //
-// the lazy object inspector.
+// renders a javascript value: a one line preview, and below it a tree that
+// builds each level only when it is opened.
+//
+// not a panel — a shared helper. the console calls it for every logged argument
+// (which is what makes console.log(obj) useful rather than "[object Object]"),
+// so console.log(obj) reads as an object rather than as "[object Object]".
 //
 // <aufbau-tree> was the obvious candidate and is the wrong one: renderNodes()
-// recurses the whole node array at render time, so feeding it a live object graph
-// would mean materialising every reachable value up front — and a circular
-// reference would never terminate. a native <details> that builds its children on
-// first open has neither problem, and gets the disclosure triangle and the
+// recurses the whole node array at render time, so feeding it a live object
+// graph would mean materialising every reachable value up front — and a circular
+// reference would never terminate. a native <details> that builds its children
+// on first open has neither problem, and gets the disclosure triangle and the
 // keyboard handling from the platform.
 
-import createElement       from '@domina/methods/createElement.js';
-import { isExpandable, preview } from './format.js';
+import createElement from '@domina/methods/createElement.js';
 
 const el = createElement;
 
 const MAX_KEYS = 100;
+
+// :::::: PREVIEWS ::::::::::::::::::::::::::::::::::::::::::::::::
+
+const MAX_STRING  = 120;
+const MAX_ENTRIES = 5;
+
+const fnName = (value) => value.name || 'anonymous';
+
+const tagOf = (node) => {
+  const id      = node.id ? `#${node.id}` : '';
+  const classes = node.classList?.length ? `.${[...node.classList].join('.')}` : '';
+  return `<${node.localName}${id}${classes}>`;
+};
+
+const clip = (text, max = MAX_STRING) => text.length > max ? `${text.slice(0, max)}…` : text;
+
+/**
+ * a one line description. `depth` 0 is the top level, where a bare string is
+ * printed as itself — the same string nested inside an object gets quotes, which
+ * is the distinction that makes '1' vs 1 visible at all.
+ */
+export function preview (value, depth = 0) {
+  switch (typeof value) {
+    case 'string'    : return depth === 0 ? clip(value) : JSON.stringify(clip(value, 60));
+    case 'number'    : return Object.is(value, -0) ? '-0' : String(value);
+    case 'bigint'    : return `${value}n`;
+    case 'boolean'   :
+    case 'undefined' : return String(value);
+    case 'symbol'    : return value.toString();
+    case 'function'  : return /^class[\s{]/.test(Function.prototype.toString.call(value))
+                              ? `class ${fnName(value)}` : `ƒ ${fnName(value)}()`;
+  }
+
+  if (value === null) return 'null';
+
+  // a proxy or a cross-origin window can throw on nearly any access, so every
+  // branch below runs inside one guard rather than each carrying its own
+  try {
+    if (value instanceof Error)   return `${value.name}: ${value.message}`;
+    if (value instanceof Date)    return value.toISOString();
+    if (value instanceof RegExp)  return String(value);
+    if (value?.nodeType === 1)    return tagOf(value);
+    if (value?.nodeType === 3)    return `#text "${clip(value.data, 40)}"`;
+    if (value?.nodeType === 9)    return '#document';
+
+    if (Array.isArray(value)) {
+      if (depth > 0) return `Array(${value.length})`;
+      const shown = value.slice(0, MAX_ENTRIES).map(item => preview(item, depth + 1));
+      return `(${value.length}) [${shown.join(', ')}${value.length > MAX_ENTRIES ? ', …' : ''}]`;
+    }
+
+    if (value instanceof Map) return `Map(${value.size})`;
+    if (value instanceof Set) return `Set(${value.size})`;
+    if (ArrayBuffer.isView(value)) return `${value.constructor.name}(${value.length})`;
+    if (value instanceof Promise)  return 'Promise';
+
+    const name = value.constructor?.name;
+    const tag  = !name || name === 'Object' ? '' : `${name} `;
+
+    if (depth > 0) return `${tag}{…}`;
+
+    // own enumerable keys only: walking the prototype chain for a collapsed
+    // preview line costs more than it tells you
+    const keys  = Object.keys(value);
+    const shown = keys.slice(0, 3).map(key => `${key}: ${preview(value[key], depth + 1)}`);
+
+    return `${tag}{${shown.join(', ')}${keys.length > 3 ? ', …' : ''}}`;
+  } catch {
+    return '<unreadable>';
+  }
+}
+
+/** whether a value has anything worth opening an inspector for */
+export function isExpandable (value) {
+  if (value === null) return false;
+  const type = typeof value;
+  return type === 'object' || type === 'function';
+}
 
 // :::::: CHILDREN ::::::::::::::::::::::::::::::::::::::::::::::
 
