@@ -4,8 +4,11 @@ import { autoloader }     from '@aufbau/elements';
 import { adoptStylesheet } from '@domina/methods/adoptStylesheet.js';
 import createElement      from '@domina/methods/createElement.js';
 
-import { createCssPanel }  from './panels/css.js';
-import { createDataPanel } from './panels/data.js';
+import settings                from './settings.js';
+import { createConsolePanel }  from './panels/console.js';
+import { createCssPanel }      from './panels/css.js';
+import { createDataPanel }     from './panels/data.js';
+import { createSettingsPanel } from './panels/settings.js';
 
 autoloader();
 
@@ -22,11 +25,12 @@ what let a panel poll only while it is on screen — see panels/data.js. a panel
 without a factory is a placeholder and just renders its note.
 */
 const registry = {
-  console : { icon: 'mdi:console-line' },
-  dom     : { icon: 'mdi:file-tree' },
-  css     : { icon: 'ph:file-css-fill',            create: createCssPanel },
-  data    : { icon: 'mdi:database-outline',        create: createDataPanel },
-  style   : { icon: 'dashicons:admin-appearance' },
+  console  : { icon: 'mdi:console-line',            create: createConsolePanel },
+  dom      : { icon: 'mdi:file-tree' },
+  css      : { icon: 'ph:file-css-fill',            create: createCssPanel },
+  data     : { icon: 'mdi:database-outline',        create: createDataPanel },
+  style    : { icon: 'dashicons:admin-appearance' },
+  settings : { icon: 'mdi:tune-variant',            create: createSettingsPanel },
 };
 
 const $devtools = createElement('aside', { id: 'devtools' });
@@ -66,6 +70,20 @@ function toggle (key, force) {
 }
 
 $devtools.append($menu);
+
+// the two settings that change the panel's own shape ride as custom properties,
+// so devtools.css stays the single place that decides what they mean
+const CHROME_KEYS = new Set(['panelHeight', 'fontSize', 'wrapLines']);
+
+const applyChrome = () => {
+  $devtools.style.setProperty('--dt-height', `${settings.get('panelHeight')}dvh`);
+  $devtools.style.setProperty('--dt-font',   `${settings.get('fontSize')}px`);
+  $devtools.dataset.wrap = settings.get('wrapLines') ? 'on' : 'off';
+};
+
+applyChrome();
+settings.subscribe((key) => { if (key === null || CHROME_KEYS.has(key)) applyChrome(); });
+
 document.body.append($devtools);
 
-export { panels, toggle };
+export { panels, settings, toggle };

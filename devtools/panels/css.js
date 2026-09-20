@@ -6,6 +6,7 @@
 // waiting for the panel to be opened.
 
 import createElement from '@domina/methods/createElement.js';
+import settings      from '../settings.js';
 
 const KEY = 'devtools:css';
 
@@ -20,7 +21,7 @@ document.head.append($liveCss);
 export function createCssPanel () {
   const $code = createElement('aufbau-code', {
     lang     : 'css',
-    theme    : 'dracula',
+    theme    : settings.get('codeTheme'),
     editable : '',
     code     : read() || '/* live css */',
     // <aufbau-code> re-emits every edit of its contenteditable as a CustomEvent
@@ -31,6 +32,11 @@ export function createCssPanel () {
       $liveCss.textContent = css;
       write(css);
     },
+  });
+
+  // aufbau-code observes `theme` and re-adopts the token sheet itself
+  settings.subscribe((key, value) => {
+    if (key === 'codeTheme' || key === null) $code.setAttribute('theme', settings.get('codeTheme'));
   });
 
   return { $content: $code };

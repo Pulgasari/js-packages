@@ -14,12 +14,12 @@
 
 import createElement from '@domina/methods/createElement.js';
 import fmt           from '../fmt.js';
+import settings      from '../settings.js';
 
 // :::::: FEATURE PROBES ::::::::::::::::::::::::::::::::::::::::
 
 const conn     = navigator.connection ?? navigator.mozConnection ?? navigator.webkitConnection ?? null;
 const hasCache = typeof caches !== 'undefined'; // undefined outside a secure context
-const POLL_MS  = 1000;
 const MAX_ENTRIES = 1000;
 
 const SECTIONS_KEY = 'devtools:data:sections';
@@ -680,13 +680,16 @@ export function createDataPanel () {
 
   // measuring continuously would move the very numbers being measured, so the
   // poll only runs while the panel is on screen
-  const onShow = () => {
-    refreshAll(false);
+  const startPolling = () => {
     clearInterval(timer);
-    timer = setInterval(() => refreshAll(true), POLL_MS);
+    timer = setInterval(() => refreshAll(true), settings.get('pollMs'));
   };
 
+  const onShow = () => { refreshAll(false); startPolling(); };
   const onHide = () => { clearInterval(timer); timer = null; };
+
+  // a changed interval only means anything while the panel is actually polling
+  settings.subscribe((key) => { if (timer && (key === null || key === 'pollMs')) startPolling(); });
 
   // a section opened while the panel is already visible should fill immediately
   $content.addEventListener('toggle', (event) => {
