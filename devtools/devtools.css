@@ -395,6 +395,7 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
         border: 1px solid currentcolor;
         border-radius: unset;
         flex: 1;
+        justify-content: space-between;
   
         background-color: var(--bgc)!important;
         color: var(--fgc)!important;
@@ -413,6 +414,8 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
           &[data-level="info"]  { --fgc: var(--color-info); }
           &[data-level="warn"]  { --fgc: var(--color-warn); }
         }
+
+        small { background-color: inherit; color: inherit; }
       }
     }
     
