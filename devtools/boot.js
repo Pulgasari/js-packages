@@ -20,13 +20,13 @@ const taps = {
   style   : 'dashicons:admin-appearance',
 };
 
-$devtools = createElement('aside', { id: 'devtools' });
-$panels = {
+const $devtools = createElement('aside', { id: 'devtools' });
+const $panels = {
   // elements
-  console : createElement('div', { class: 'devtools-panel hidden', id: 'devtools-panel-consosle' }),        
-  css     : createElement('div', { class: 'devtools-panel hidden', id: 'devtools-panel-css' }),
-  dom     : createElement('div', { class: 'devtools-panel hidden', id: 'devtools-panel-css' }),
-  style   : createElement('div', { class: 'devtools-panel hidden', id: 'devtools-panel-css' }),
+  console : createElement('section', { class: 'hidden', id: 'devtools-panel-consosle' }),        
+  css     : createElement('section', { class: 'hidden', id: 'devtools-panel-css' }),
+  dom     : createElement('section', { class: 'hidden', id: 'devtools-panel-css' }),
+  style   : createElement('section', { class: 'hidden', id: 'devtools-panel-css' }),
   // api
   hide   : (key)        => $panels[key].classList.add('hidden'),
   show   : (key)        => $panels[key].classList.remove('hidden'),
@@ -35,7 +35,7 @@ $panels = {
   //close  : (key)        => $panels.toggle(key, true),
 };
 
-$menu = createElement('menu');
+const $menu = createElement('menu');
 for (const key of taps) {
   const $icon = createElement('aufbau-icon', {
     name    : taps[key], 
