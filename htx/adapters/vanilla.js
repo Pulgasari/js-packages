@@ -19,7 +19,7 @@ import { createHtml }    from '../index.js';
 
 export const Fragment = Symbol('htx.fragment');
 
-const SVG_NS = 'http://www.w3.org/2000/svg';
+
 
 // :::::: HELPERS
 
@@ -27,6 +27,8 @@ const isFn = (value) => typeof value === 'function';
 
 // :::::: SVG SONDERBEHANDLUNG
 // (gehört evtl. direkt in @domina gelöst?)
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
 
 /*
 tags that only exist in svg. the ones shared with html — a, script, style,
@@ -51,7 +53,7 @@ const make = (tag, props) => updateElement(
   props,
 );
 
-export function h (type, props, ...children) {
+function h (type, props, ...children) {
   // htx never calls a component; preact does that itself, so vanilla has to
   if (isFn(type)) return type(props ?? {}, children);
 
@@ -76,8 +78,8 @@ const html = htx;
 // :::::: EXPORT
 
 export {
+  h, htx,
   html, createVanillaHtml,
-  htx,
 };
 
 export default htx;
