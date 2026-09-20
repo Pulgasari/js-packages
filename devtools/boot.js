@@ -39,7 +39,7 @@ const $menu = createElement('menu');
 for (const key in taps) {
   const $icon = createElement('aufbau-icon', {
     name    : taps[key], 
-    onclick : $panel.toggle(key),
+    onclick : $panels.toggle(key),
   });
   $menu.append($icon);
 }
