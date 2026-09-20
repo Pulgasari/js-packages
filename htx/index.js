@@ -310,7 +310,10 @@ function normalizeTag (spec) {
   if (isString(spec) || isFn(spec)) return { tag: spec, args: [], props: null };
   if (!isObject(spec)) throw new Error('[htx] a shorthand is a tag name, a component, or { tag, args, props }');
 
-  return { tag: spec.tag, args: spec.args ?? [], props: spec.props ?? null };
+  // a single positional needs no array around it
+  const args = spec.args ?? [];
+
+  return { tag: spec.tag, args: isString(args) ? [args] : args, props: spec.props ?? null };
 }
 
 /**
@@ -355,8 +358,27 @@ function resolveTag (props, entry) {
 // :::::: TAG FUNCTION
 
 function createHtml (h, Fragment, { memo = true, tags } = {}) {
-  const cache    = new Map;
-  const registry = new Map;
+  const cache = new Map;
+
+  /*
+  a plain object rather than a Map, so a registry entry can be assigned straight
+  onto it — html.tags.icon = { … } — as readily as through define(). the leading
+  $ is optional in the key, because the tag is written <$icon> and keying it the
+  same way is the obvious guess.
+  */
+  const registry   = {};
+  const normalized = new Map;
+
+  // keyed on the spec object, so reassigning a tag re-normalises it
+  const entryFor = (name) => {
+    const spec = registry[name] ?? registry['$' + name];
+    if (!spec) return null;
+
+    let entry = normalized.get(spec);
+    if (!entry) normalized.set(spec, entry = normalizeTag(spec));
+
+    return entry;
+  };
 
   // an empty tag (<>...</>) leaves the tag name as '', which falls back to Fragment.
   // `this` is the staticness bit field and is forwarded untouched.
@@ -365,7 +387,7 @@ function createHtml (h, Fragment, { memo = true, tags } = {}) {
     let entry = null;
 
     if (shorthand) {
-      entry = registry.get(type.slice(1));
+      entry = entryFor(type.slice(1));
       // silently rendering a <$foo> element would be a typo nobody finds: as a
       // tag name it is invalid for createElement and merely unknown to a vdom
       if (!entry) throw new Error(`[htx] unknown shorthand tag <${type}>`);
@@ -390,8 +412,7 @@ function createHtml (h, Fragment, { memo = true, tags } = {}) {
 
   /** define('icon', spec) or define({ icon: spec, box: spec }) */
   html.define = (name, spec) => {
-    const map = isString(name) ? { [name]: spec } : name;
-    for (const key in map) registry.set(key, normalizeTag(map[key]));
+    Object.assign(registry, isString(name) ? { [name]: spec } : name);
     return html;
   };
 
