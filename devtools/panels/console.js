@@ -13,7 +13,7 @@
 import createElement from '@domina/methods/createElement.js';
 
 import settings                from '../settings.js';
-import { inspect, preview }    from '../inspector.js';
+import { inspector, preview }  from '../inspector.js';
 
 const el = createElement;
 
@@ -135,7 +135,7 @@ function signature (level, args) {
   }
 }
 
-const LEVELS = ['log', 'info', 'warn', 'error', 'debug'];
+const LEVELS = ['debug', 'error', 'info', 'log', 'warn'];
 
 // the eval echo and its result are rows in the same stream, but not filterable
 // levels — they always show. trace folds into debug: a separate toggle for it
@@ -260,21 +260,22 @@ export function createConsolePanel () {
   let needle   = '';
   let pinned   = true;            // autoscroll, released as soon as you scroll up
 
-  const $list   = el('div', { className: 'dt-log' });
+  const $list   = el('ol');
   const $counts = {};
 
-  // ── filter bar
-  const $levels = el('div', { className: 'dt-levels' });
+  // ── level filters. a toggle button is what aria-pressed is for, so the state
+  //    needs no class of its own
+  const $levels = el('menu');
 
   for (const level of LEVELS) {
-    const $count  = el('span', { className: 'dt-level-count', textContent: '0' });
+    const $count  = el('small', { textContent: '0' });
     const $toggle = el('button', {
-      type      : 'button',
-      className : 'dt-level is-on',
-      dataset   : { level },
-      onClick   : () => {
+      type    : 'button',
+      dataset : { level },
+      'aria-pressed': 'true',
+      onClick : () => {
         active.has(level) ? active.delete(level) : active.add(level);
-        $toggle.classList.toggle('is-on', active.has(level));
+        $toggle.setAttribute('aria-pressed', String(active.has(level)));
         render();
       },
     }, el('span', { textContent: level }), $count);
@@ -289,15 +290,15 @@ export function createConsolePanel () {
   });
 
   const $clear = el('button', {
-    type: 'button', className: 'dt-btn', textContent: 'clear',
+    type: 'button', textContent: 'clear',
     onClick: () => { entries.length = 0; render(); },
   });
 
-  const $filter = el('div', { className: 'dt-filter' }, $search, $clear);
+  const $filter = el('header', {}, $search, $clear);
 
   // ── input
   const $input = el('textarea', {
-    className: 'dt-input', rows: 1, placeholder: '›  expression', spellcheck: false,
+    rows: 1, placeholder: '›  expression', spellcheck: false,
     autocapitalize: 'off', autocorrect: 'off', autocomplete: 'off',
   });
 
@@ -354,8 +355,8 @@ export function createConsolePanel () {
     }
   });
 
-  const $run  = el('button', { type: 'button', className: 'dt-btn dt-run', textContent: 'run', onClick: run });
-  const $form = el('div', { className: 'dt-console-input' }, $input, $run);
+  const $run  = el('button', { type: 'button', textContent: 'run', onClick: run });
+  const $form = el('footer', {}, $input, $run);
 
   // ── rendering
 
@@ -369,25 +370,26 @@ export function createConsolePanel () {
   };
 
   function rowElement (row) {
-    const $row  = el('div', { className: `dt-log-row is-${row.level}`, dataset: { level: row.level } });
-    const $body = el('div', { className: 'dt-log-body' });
+    const $row  = el('li', { dataset: { level: row.level } });
+    const $body = el('div');
 
     if (settings.get('timestamps')) {
-      $body.append(el('span', { className: 'dt-log-time', textContent: new Date(row.time).toTimeString().slice(0, 8) }));
+      const stamp = new Date(row.time);
+      $body.append(el('time', { dateTime: stamp.toISOString(), textContent: stamp.toTimeString().slice(0, 8) }));
     }
 
-    if (row.level === 'input')  $body.append(el('span', { className: 'dt-log-caret', textContent: '›' }));
-    if (row.level === 'result') $body.append(el('span', { className: 'dt-log-caret', textContent: '‹' }));
+    // the › and ‹ markers for the eval echo and its answer come from the level
+    // attribute in css, so no node carries them
 
     for (const part of formatParts(row.args)) {
       if (part.kind === 'text') {
         $body.append(el('span', { textContent: part.text, ...(part.style && { style: part.style }) }));
       } else {
-        $body.append(inspect(part.value));
+        $body.append(inspector(part.value));
       }
     }
 
-    const $count = el('span', { className: 'dt-log-count', textContent: row.count > 1 ? String(row.count) : '' });
+    const $count = el('small', { textContent: row.count > 1 ? String(row.count) : '' });
     $row.append($body, $count);
 
     row.$el    = $row;
@@ -404,7 +406,7 @@ export function createConsolePanel () {
     $list.replaceChildren(...visible.map(rowElement));
 
     if (!visible.length) {
-      $list.append(el('p', { className: 'dt-empty', textContent: entries.length ? 'nothing matches the filter' : 'nothing logged yet' }));
+      $list.append(el('em', { textContent: entries.length ? 'nothing matches the filter' : 'nothing logged yet' }));
     }
 
     const tally = Object.fromEntries(LEVELS.map(level => [level, 0]));
@@ -420,7 +422,7 @@ export function createConsolePanel () {
       if (!passes(row)) return;
       const stick = pinned && atBottom();
 
-      $list.querySelector('.dt-empty')?.remove();
+      $list.querySelector('em')?.remove();
       $list.append(rowElement(row));
 
       while ($list.childElementCount > VISIBLE_MAX) $list.firstElementChild.remove();
@@ -444,7 +446,7 @@ export function createConsolePanel () {
 
   settings.subscribe((key) => { if (key === 'timestamps' || key === 'dedupe' || key === 'logLimit' || key === null) render(); });
 
-  const $content = el('div', { className: 'dt-console' }, $levels, $filter, $list, $form);
+  const $content = [$levels, $filter, $list, $form];
 
   return {
     $content,

@@ -161,12 +161,12 @@ function childrenOf (value) {
  *        the same object appearing in two sibling branches is not a cycle.
  */
 export function inspect (value, { label = null, kind, ancestors = [] } = {}) {
-  const $label   = label === null ? null : el('span', { className: `dt-ins-key${kind ? ` is-${kind}` : ''}`, textContent: `${label}:` });
-  const describe = (text) => el('span', { className: `dt-ins-val is-${typeName(value)}`, textContent: text });
+  const $label   = label === null ? null : el('span', { className: 'key', dataset: kind ? { kind } : {}, textContent: `${label}:` });
+  const describe = (text) => el('span', { className: `value is-${typeName(value)}`, textContent: text });
+  const lead     = () => label === null ? [] : [$label, ' '];
 
   if (kind === 'getter') {
-    const $row  = el('span', { className: 'dt-ins-row' });
-    const $read = el('button', { type: 'button', className: 'dt-ins-getter', textContent: '(…)', title: 'invoke getter' });
+    const $read = el('button', { type: 'button', textContent: '(…)', title: 'invoke getter' });
 
     // reading it is the user's call, and the result replaces the button in place
     $read.addEventListener('click', () => {
@@ -175,28 +175,21 @@ export function inspect (value, { label = null, kind, ancestors = [] } = {}) {
       $read.replaceWith(inspect(result, { ancestors }));
     }, { once: true });
 
-    $row.append(...(label === null ? [] : [$label, ' ']), $read);
-    return $row;
+    return el('div', {}, ...lead(), $read);
   }
 
-  if (!isExpandable(value)) {
-    const $row = el('span', { className: 'dt-ins-row' });
-    $row.append(...(label === null ? [] : [$label, ' ']), describe(preview(value, ancestors.length ? 1 : 0)));
-    return $row;
-  }
+  if (!isExpandable(value)) return el('div', {}, ...lead(), describe(preview(value, ancestors.length ? 1 : 0)));
 
   if (ancestors.includes(value)) {
-    const $row = el('span', { className: 'dt-ins-row' });
-    $row.append(...(label === null ? [] : [$label, ' ']), el('span', { className: 'dt-ins-val is-circular', textContent: '[circular]' }));
-    return $row;
+    return el('div', {}, ...lead(), el('span', { className: 'value is-circular', textContent: '[circular]' }));
   }
 
   // depth 0, at every level: preview() only ever descends one step, so a summary
   // that says {name: "root", list: Array(3), …} costs the same as one saying {…}
   const $summary = el('summary', {});
-  $summary.append(...(label === null ? [] : [$label, ' ']), describe(preview(value, 0)));
+  $summary.append(...lead(), describe(preview(value, 0)));
 
-  const $details = el('details', { className: 'dt-ins' }, $summary);
+  const $details = el('details', {}, $summary);
 
   // built once, on first open: a console holding a few hundred entries must not
   // walk every logged object just to render the collapsed list
@@ -205,7 +198,7 @@ export function inspect (value, { label = null, kind, ancestors = [] } = {}) {
     if (built || !$details.open) return;
     built = true;
 
-    const $body = el('div', { className: 'dt-ins-body' });
+    const $body = el('div');
     const chain = [...ancestors, value];
     const kids  = childrenOf(value);
 
@@ -217,12 +210,15 @@ export function inspect (value, { label = null, kind, ancestors = [] } = {}) {
       $body.append(inspect(child, { label: childLabel, kind: childKind, ancestors: chain }));
     }
 
-    if (!kids.length) $body.append(el('span', { className: 'dt-ins-empty', textContent: 'no properties' }));
+    if (!kids.length) $body.append(el('em', { textContent: 'no properties' }));
     $details.append($body);
   });
 
   return $details;
 }
+
+/** the root an inspected value is rendered into; .inspector is its only class */
+export const inspector = (value, options) => el('div', { className: 'inspector' }, inspect(value, options));
 
 // drives the colour class, so a string reads differently from a number at a glance
 function typeName (value) {
@@ -232,4 +228,4 @@ function typeName (value) {
   return type;
 }
 
-export default inspect;
+export default inspector;
