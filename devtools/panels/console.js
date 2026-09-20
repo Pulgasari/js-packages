@@ -137,6 +137,20 @@ function signature (level, args) {
 
 const LEVELS = ['debug', 'error', 'info', 'log', 'warn'];
 
+// one icon per level, used in the filter bar and in front of every row. input
+// and result are not filterable levels but do get a marker of their own
+const ICONS = {
+  debug  : 'mdi:bug-outline',
+  error  : 'mdi:close-circle-outline',
+  info   : 'mdi:information-outline',
+  log    : 'mdi:message-outline',
+  warn   : 'mdi:alert-outline',
+  input  : 'mdi:chevron-right',
+  result : 'mdi:chevron-left',
+};
+
+const icon = (name, props) => el('aufbau-icon', { icon: name, ...props });
+
 // the eval echo and its result are rows in the same stream, but not filterable
 // levels — they always show. trace folds into debug: a separate toggle for it
 // buys a button nobody presses
@@ -278,7 +292,7 @@ export function createConsolePanel () {
         $toggle.setAttribute('aria-pressed', String(active.has(level)));
         render();
       },
-    }, el('span', { textContent: level }), $count);
+    }, icon(ICONS[level]), el('span', { textContent: level }), $count);
 
     $counts[level] = $count;
     $levels.append($toggle);
@@ -358,6 +372,48 @@ export function createConsolePanel () {
   const $run  = el('button', { type: 'button', textContent: 'run', onClick: run });
   const $form = el('footer', {}, $input, $run);
 
+  // ── focus
+  /*
+  one row at a time carries the actions. the bar is a single element that gets
+  reparented rather than three icons per row — a few hundred rows would otherwise
+  mean a few hundred custom elements standing by for a tap that never comes.
+  */
+  let focused = null; // the entry object, not its element: a re-render replaces
+                      // the element but the entry survives
+
+  const $copy   = icon('mdi:content-copy', { title: 'copy', onClick: () => {
+    navigator.clipboard?.writeText(focused?.$el?.querySelector('div')?.textContent ?? '');
+  } });
+
+  const $rerun  = icon('mdi:replay', { title: 're-run', onClick: () => {
+    if (focused?.level !== 'input') return;
+    $input.value = String(focused.args[0] ?? '');
+    grow();
+    run();
+  } });
+
+  const $delete = icon('mdi:trash-can-outline', { title: 'delete', onClick: () => {
+    const at = entries.indexOf(focused);
+    if (at >= 0) entries.splice(at, 1);
+    focused = null;
+    render();
+  } });
+
+  const $actions = el('menu', {}, $copy, $rerun, $delete);
+
+  function focus (row) {
+    for (const $row of $list.querySelectorAll('[aria-current]')) $row.removeAttribute('aria-current');
+
+    // tapping the focused row again releases it
+    focused = focused === row ? null : row;
+    if (!focused) { $actions.remove(); return; }
+
+    // re-run only means anything for the eval echo
+    $rerun.hidden = focused.level !== 'input';
+    focused.$el?.setAttribute('aria-current', 'true');
+    focused.$el?.append($actions);
+  }
+
   // ── rendering
 
   const passes = (row) => (active.has(row.level) || PASSTHROUGH.has(row.level))
@@ -370,16 +426,15 @@ export function createConsolePanel () {
   };
 
   function rowElement (row) {
-    const $row  = el('li', { dataset: { level: row.level } });
+    const $row  = el('li', { dataset: { level: row.level }, onClick: () => focus(row) });
     const $body = el('div');
+
+    $row.append(icon(ICONS[row.level] ?? ICONS.log));
 
     if (settings.get('timestamps')) {
       const stamp = new Date(row.time);
       $body.append(el('time', { dateTime: stamp.toISOString(), textContent: stamp.toTimeString().slice(0, 8) }));
     }
-
-    // the › and ‹ markers for the eval echo and its answer come from the level
-    // attribute in css, so no node carries them
 
     for (const part of formatParts(row.args)) {
       if (part.kind === 'text') {
@@ -395,6 +450,9 @@ export function createConsolePanel () {
     row.$el    = $row;
     row.$count = $count;
 
+    // a re-render rebuilds the element, so the focus has to be put back on it
+    if (row === focused) { $row.setAttribute('aria-current', 'true'); $row.append($actions); }
+
     return $row;
   }
 
@@ -402,6 +460,8 @@ export function createConsolePanel () {
   const toBottom = () => { $list.scrollTop = $list.scrollHeight; };
 
   function render () {
+    if (focused && !entries.includes(focused)) focused = null;
+
     const visible = entries.filter(passes).slice(-VISIBLE_MAX);
     $list.replaceChildren(...visible.map(rowElement));
 

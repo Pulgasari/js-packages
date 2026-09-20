@@ -11,7 +11,7 @@
 
 ## panel: console
 - [x] font in console-einträgen sollte monospace sein
-- [ ] wenn eintrag in console angeklickt wird wird dieser quasi fokusierr, dadurch:
-  - [ ] opacity zu 100%
-  - [ ] rechts erscheinen icons: copy, delete, und wo passend: re-run
-  - [ ] links vor jedem eintrag und im filter (info, warn usw) jeweils noch n pasendes icon zur besseren repräsentation
+- [x] wenn eintrag in console angeklickt wird wird dieser quasi fokusierr, dadurch:
+  - [x] opacity zu 100%
+  - [x] rechts erscheinen icons: copy, delete, und wo passend: re-run
+  - [x] links vor jedem eintrag und im filter (info, warn usw) jeweils noch n pasendes icon zur besseren repräsentation

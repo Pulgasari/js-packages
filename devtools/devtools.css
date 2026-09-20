@@ -396,7 +396,7 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
       button {
         display       : flex;
         align-items   : center;
-        gap            : 0.35em;
+        gap           : 0.35em;
         padding       : 0.25em 0.5em;
         min-block-size: 0;
         background    : transparent;
@@ -425,11 +425,34 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
 
       > li {
         display           : flex;
+        align-items       : flex-start;
         gap               : 0.5em;
         padding           : 0.15em 0.3em;
         border-block-start: 1px solid #fff1;
+        /* the focused row reads at full strength, the rest step back. tapping a
+           row is what a phone has instead of hovering it */
+        opacity           : 0.75;
+
+        &[aria-current] { opacity: 1; background: #fff1; }
+
+        /* the level marker in front of the entry */
+        > aufbau-icon { flex: none; margin-block-start: 0.2em; opacity: 0.8; }
 
         > div { flex: 1; min-inline-size: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+
+        /* the action bar, moved in by the panel rather than built per row */
+        > menu {
+          display    : flex;
+          flex       : none;
+          gap        : 0.5em;
+          margin     : 0;
+          padding    : 0;
+          align-self : flex-start;
+          font-size  : 1.2em;
+
+          aufbau-icon { cursor: pointer; }
+          aufbau-icon[hidden] { display: none; }
+        }
 
         /* the count badge on a collapsed repeat */
         > small:not(:empty) {
@@ -447,10 +470,6 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
         &[data-level="debug"]  { color: var(--mix-500, #888); }
         &[data-level="input"]  { color: var(--mix-400, #999); }
         &[data-level="result"] { color: var(--accent-3, #50fa7b); }
-
-        /* the eval echo and its answer are marked by the list, not by a node */
-        &[data-level="input"]  > div::before { content: '› '; }
-        &[data-level="result"] > div::before { content: '‹ '; }
       }
     }
 
