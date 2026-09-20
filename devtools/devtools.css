@@ -10,6 +10,9 @@
   --color-warn   : orange;
 }
 
+  dd, dl, ul { margin: 0; padding: 0; }
+
+
 /* ── the three things that live outside #devtools ─────────────────────────── */
 
 body:has(#devtools) {
@@ -25,8 +28,8 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
 
 /* while picking, the page must not react to the tap that is doing the picking */
 :root[data-dt-picking], :root[data-dt-picking] * {
-  cursor     : crosshair !important;
-  user-select: none !important;
+  cursor      : crosshair !important;
+  user-select : none      !important;
 }
 
 /* the element highlight sits on <body>, so the panel's overflow cannot clip it.
@@ -90,8 +93,6 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
 
     aufbau-icon {
       cursor: pointer;
-      /* aufbau-icon is a box masked by the svg and coloured with currentColor,
-         so the active state is a plain colour change */
       &[aria-pressed="true"] { color: var(--accent, #ff79c6); }
     }
   }
@@ -120,27 +121,24 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
   }
 
   /* :::: rows ::::::::::::::::::::::::::::::::::::::::::::::::: */
-
   dl {
     display              : grid;
     grid-template-columns: max-content 1fr;
     align-items          : baseline;
     column-gap           : 0.75em;
-    margin               : 0;
   }
 
   dt { color: var(--mix-500, #888); }
 
   dd {
-    margin              : 0;
     text-align          : end;
     font-variant-numeric: tabular-nums;
     overflow-wrap       : anywhere;
 
     /* a value the browser has no api for — never styled like a real zero */
-    &[data-state="missing"] { color: var(--mix-600, #666); font-style: italic; }
-    &[data-state="good"]    { color: var(--success, #50fa7b); }
-    &[data-state="warn"]    { color: var(--accent-2, #f1fa8c); }
+    &[data-state="missing"] { color: var(--color-error); font-style: italic; }
+    &[data-state="good"]    { color: var(--color-success, #50fa7b); }
+    &[data-state="warn"]    { color: var(--color-warn); }
     &[data-state="bad"]     { color: var(--accent, #ff5555); }
   }
 
@@ -159,7 +157,7 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
   /* :::: controls :::::::::::::::::::::::::::::::::::::::::::::: */
 
   button {
-    padding       : 0.35em 0.7em;
+    padding       : 0.5em;
     border        : 1px solid #fff2;
     background    : #fff1;
     color         : inherit;
@@ -514,7 +512,7 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
         > summary, ~ div { white-space: nowrap; }
 
         > summary {
-          padding       : 0.15em 0.2em;
+          padding       : 0.25rem;
           text-transform: none;
           letter-spacing: normal;
           color         : #8be9fd;
@@ -552,8 +550,6 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
 
     /* matched rules */
     ul {
-      margin    : 0;
-      padding   : 0;
       list-style: none;
 
       > li {
