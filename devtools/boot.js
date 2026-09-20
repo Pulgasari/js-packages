@@ -36,7 +36,7 @@ const $panels = {
 };
 
 const $menu = createElement('menu');
-for (const key of taps) {
+for (const key in taps) {
   const $icon = createElement('aufbau-icon', {
     name    : taps[key], 
     onclick : $panel.toggle(key),
