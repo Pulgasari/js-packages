@@ -12,7 +12,7 @@
  */
 
 import { h, Fragment } from 'preact';
-import { createHtml }  from './index.js';
+import { createHtml }  from '../index.js';
 
 export const html = createHtml(h, Fragment);
 export * from 'preact';
