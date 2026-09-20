@@ -1,88 +1,71 @@
 // @pulgasari/devtools
 
-import { autoloader } from '@aufbau/elements';
-import createElement  from '@domina/methods/createElement.js';
+import { autoloader }     from '@aufbau/elements';
+import { adoptStylesheet } from '@domina/methods/adoptStylesheet.js';
+import createElement      from '@domina/methods/createElement.js';
+
+import { createCssPanel }  from './panels/css.js';
+import { createDataPanel } from './panels/data.js';
 
 autoloader();
 
-// :::::: panels
+// the sheet lives next to this module, so a host page only ever has to know the
+// one entry point. adopted sheets cascade after the page's own author styles,
+// which is why nothing in devtools.css needs !important
+adoptStylesheet(new URL('./devtools.css', import.meta.url).href, { key: 'devtools' });
 
-const taps = {
-  console : 'mdi:console-line',
-  dom     : 'mdi:file-tree',
-  css     : 'ph:file-css-fill',
-  style   : 'dashicons:admin-appearance',
+// :::::: PANELS ::::::::::::::::::::::::::::::::::::::::::::::::
+
+/*
+a panel factory returns { $content, onShow?, onHide? }. the lifecycle hooks are
+what let a panel poll only while it is on screen — see panels/data.js. a panel
+without a factory is a placeholder and just renders its note.
+*/
+const registry = {
+  console : { icon: 'mdi:console-line' },
+  dom     : { icon: 'mdi:file-tree' },
+  css     : { icon: 'ph:file-css-fill',            create: createCssPanel },
+  data    : { icon: 'mdi:database-outline',        create: createDataPanel },
+  style   : { icon: 'dashicons:admin-appearance' },
 };
 
 const $devtools = createElement('aside', { id: 'devtools' });
+const $menu     = createElement('menu');
+const panels    = {};
 
-const $panels = {
-  // elements
-  console : createElement('section', { className: 'hidden', id: 'devtools-console' }),
-  css     : createElement('section', { className: 'hidden', id: 'devtools-css' }),
-  dom     : createElement('section', { className: 'hidden', id: 'devtools-dom' }),
-  style   : createElement('section', { className: 'hidden', id: 'devtools-style' }),
-  // api
-  hide   : (key)        => $panels[key].classList.add('hidden'),
-  show   : (key)        => $panels[key].classList.remove('hidden'),
-  toggle : (key, force) => $panels[key].classList.toggle('hidden', force),
-};
+for (const [key, { icon, create }] of Object.entries(registry)) {
+  const panel    = create?.() ?? { $content: createElement('i', { textContent: 'coming soon ...' }) };
+  const $section = createElement('section', { className: 'hidden', id: `devtools-${key}` }, panel.$content);
 
-const $menu = createElement('menu');
-for (const key in taps) {
-  // the handler has to stay a function reference, calling toggle() here would
+  panels[key] = { ...panel, $section };
+
+  // the handler has to stay a function reference — calling toggle() here would
   // flip the panel at build time and register nothing
-  const $icon = createElement('aufbau-icon', {
-    icon    : taps[key],
-    onClick : () => $panels.toggle(key),
-  });
-  $menu.append($icon);
+  $menu.append(createElement('aufbau-icon', {
+    icon,
+    title   : key,
+    onClick : () => toggle(key),
+  }));
+
+  $devtools.append($section);
 }
 
-// :::::: live css
-// an editable <aufbau-code> writing straight into a <style> in <head>, backed by
-// localStorage so the sheet survives reloads. the style node is appended before
-// the panel mounts, so stored css paints with the first frame.
+/** one panel at a time: two open sections leave no room for the app on a phone */
+function toggle (key, force) {
+  const panel = panels[key];
+  const open  = force ?? panel.$section.classList.contains('hidden');
 
-const CSS_KEY = 'devtools:css';
+  for (const [other, candidate] of Object.entries(panels)) {
+    if (other === key || candidate.$section.classList.contains('hidden')) continue;
+    candidate.$section.classList.add('hidden');
+    candidate.onHide?.();
+  }
 
-// storage is blocked in incognito and behind some privacy settings, a dev panel
-// is not worth throwing over
-const readCss  = ()    => { try { return localStorage.getItem(CSS_KEY) ?? ''; } catch { return ''; } };
-const writeCss = (css) => { try { localStorage.setItem(CSS_KEY, css); }        catch {} };
+  panel.$section.classList.toggle('hidden', !open);
+  open ? panel.onShow?.() : panel.onHide?.();
+}
 
-const $liveCss = createElement('style', { id: 'devtools-live-css', textContent: readCss() });
-document.head.append($liveCss);
-
-const $code = createElement('aufbau-code', {
-  lang     : 'css',
-  theme    : 'dracula',
-  editable : '',
-  code     : readCss() || '/* live css */',
-  // <aufbau-code> re-emits every edit of its contenteditable as a CustomEvent
-  // carrying the current source. the inner node's native input event bubbles up
-  // here as well, hence the fallback to the element's own getter.
-  onInput  : (event) => {
-    const css = event.detail?.code ?? $code.code ?? '';
-    $liveCss.textContent = css;
-    writeCss(css);
-  },
-});
-
-$panels.css.append($code);
-
-$panels.console.innerHTML = '<i>coming soon ...</i>';
-$panels.dom.innerHTML     = '<i>coming soon ...</i>';
-$panels.style.innerHTML   = '<i>coming soon ...</i>';
-
-// :::::: mount
-
-$devtools.append(
-  $panels.console,
-  $panels.css,
-  $panels.dom,
-  $panels.style,
-  $menu,
-);
-
+$devtools.append($menu);
 document.body.append($devtools);
+
+export { panels, toggle };

@@ -1,0 +1,276 @@
+/* @pulgasari/devtools
+
+the panel chrome. adopted by boot.js through adoptStylesheet(), so it cascades
+after the host app's own author styles and needs no !important anywhere.
+
+everything is scoped to #devtools or prefixed dt-, so the sheet can be adopted
+into any page without colliding with it. the only exception is the body rule
+below, which has to reach outside to give the panel its own row. */
+
+body:has(#devtools) {
+  height        : 100dvh;
+  display       : flex;
+  flex-direction: column;
+
+  #app      { flex: 1; height: unset; }
+  #devtools { flex: 0; }
+}
+
+/* the cap sits on the whole panel, not on the open section: capping the section
+   alone lets the menu get pushed off screen by a long one, and the menu is the
+   only way back out of it */
+#devtools {
+  background     : color-mix(in oklch, var(--bg), black 20%);
+  display        : flex;
+  flex-flow      : column;
+  max-block-size : 60dvh;
+
+  > menu {
+    display  : flex;
+    gap      : 0.5rem;
+    padding  : 0.5rem;
+    font-size: 2rem;
+    /* <menu> is a list element: without this the ua default margin-block of 1em
+       adds 64px of dead space around the icon row at this font size */
+    margin   : 0;
+    flex     : none;
+  }
+
+  > section {
+    border-bottom: 1px solid #fff2;
+    padding      : 0.5rem;
+  }
+}
+
+/* the open section takes what is left and scrolls. shrink, never grow — a short
+   panel should stay short instead of stretching to the cap */
+#devtools > section {
+  flex                  : 0 1 auto;
+  min-block-size        : 0;
+  overflow-y            : auto;
+  overscroll-behavior   : contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+#devtools .hidden { display: none; }
+
+/* :::::: sections ::::::::::::::::::::::::::::::::::::::::::::: */
+
+.dt-section {
+  border-block-end: 1px solid #fff1;
+}
+
+.dt-section:last-of-type { border-block-end: 0; }
+
+.dt-section > summary {
+  display       : flex;
+  align-items   : center;
+  gap           : 0.5em;
+  padding       : 0.5em 0;
+  cursor        : pointer;
+  user-select   : none;
+  font-size     : 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color         : var(--mix-400, #999);
+}
+
+.dt-section > summary::-webkit-details-marker { display: none; }
+.dt-section > summary::marker                 { content: ''; }
+
+.dt-section > summary::before {
+  content   : '';
+  inline-size: 0.5em;
+  block-size : 0.5em;
+  border     : 1px solid currentColor;
+  border-width: 0 1px 1px 0;
+  rotate     : -45deg;
+  transition : rotate 150ms ease;
+}
+
+.dt-section[open] > summary::before { rotate: 45deg; }
+
+/* the count/summary chip a section carries on its header, e.g. "4 caches" */
+.dt-badge {
+  margin-inline-start: auto;
+  padding            : 0.1em 0.5em;
+  border-radius      : 1em;
+  background         : #fff1;
+  font-size          : 0.9em;
+  letter-spacing     : 0;
+  text-transform     : none;
+  font-variant-numeric: tabular-nums;
+}
+
+.dt-body {
+  padding-block-end: 0.75em;
+  display          : flex;
+  flex-flow        : column;
+  gap              : 0.35em;
+}
+
+/* :::::: rows ::::::::::::::::::::::::::::::::::::::::::::::::: */
+
+.dt-row {
+  display    : flex;
+  align-items: baseline;
+  gap        : 0.75em;
+  font-size  : 0.85rem;
+  line-height: 1.5;
+}
+
+.dt-key {
+  flex      : 0 0 auto;
+  min-inline-size: 8em;
+  color     : var(--mix-500, #888);
+}
+
+.dt-val {
+  flex       : 1;
+  text-align : end;
+  font-family: var(--font-family-mono, ui-monospace, monospace);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* a value the browser cannot answer — never styled like a real zero */
+.dt-val[data-state="missing"] { color: var(--mix-600, #666); font-style: italic; }
+.dt-val[data-state="good"]    { color: var(--success, #50fa7b); }
+.dt-val[data-state="warn"]    { color: var(--accent-2, #f1fa8c); }
+.dt-val[data-state="bad"]     { color: var(--accent, #ff5555); }
+
+.dt-note {
+  font-size : 0.75rem;
+  color     : var(--mix-600, #777);
+  line-height: 1.4;
+}
+
+.dt-empty {
+  font-size : 0.85rem;
+  color     : var(--mix-600, #777);
+  font-style: italic;
+}
+
+/* :::::: meters :::::::::::::::::::::::::::::::::::::::::::::::: */
+
+.dt-meter {
+  display  : flex;
+  flex-flow: column;
+  gap      : 0.2em;
+}
+
+.dt-meter aufbau-progress {
+  --progress-size: 0.4em;
+  background     : #fff1;
+  border-radius  : 1em;
+  overflow       : hidden;
+}
+
+.dt-meter .progress-bar { background: var(--accent, #ff79c6); }
+.dt-meter[data-state="warn"] .progress-bar { background: var(--accent-2, #f1fa8c); }
+.dt-meter[data-state="bad"]  .progress-bar { background: var(--accent,   #ff5555); }
+
+/* :::::: actions ::::::::::::::::::::::::::::::::::::::::::::::: */
+
+.dt-actions {
+  display  : flex;
+  flex-wrap: wrap;
+  gap      : 0.4em;
+  padding-block-start: 0.4em;
+}
+
+.dt-btn {
+  padding      : 0.35em 0.7em;
+  border       : 1px solid #fff2;
+  border-radius: 0.3em;
+  background   : #fff1;
+  color        : inherit;
+  font         : inherit;
+  font-size    : 0.8rem;
+  cursor       : pointer;
+  /* a destructive action needs a target big enough not to be hit by accident */
+  min-block-size: 2.2em;
+}
+
+.dt-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* second tap confirms — see armAction() in panels/data.js */
+.dt-btn[data-armed] {
+  border-color: var(--accent, #ff5555);
+  color       : var(--accent, #ff5555);
+  background  : var(--accent-10, #fff2);
+}
+
+/* :::::: tables :::::::::::::::::::::::::::::::::::::::::::::::: */
+
+.dt-table {
+  inline-size    : 100%;
+  border-collapse: collapse;
+  font-size      : 0.75rem;
+  font-family    : var(--font-family-mono, ui-monospace, monospace);
+}
+
+.dt-table th {
+  position      : sticky;
+  inset-block-start: 0;
+  z-index       : 1;
+  padding       : 0.3em 0.4em;
+  background    : color-mix(in oklch, var(--bg), black 30%);
+  color         : var(--mix-500, #888);
+  text-align    : start;
+  white-space   : nowrap;
+  cursor        : pointer;
+  user-select   : none;
+  font-weight   : normal;
+}
+
+.dt-table th[aria-sort="ascending"]::after  { content: ' ▲'; }
+.dt-table th[aria-sort="descending"]::after { content: ' ▼'; }
+
+.dt-table td {
+  padding      : 0.3em 0.4em;
+  border-block-start: 1px solid #fff1;
+  vertical-align: top;
+}
+
+.dt-table td[data-numeric] { text-align: end; font-variant-numeric: tabular-nums; }
+
+.dt-table tbody tr:nth-child(even) { background: #fff1; }
+
+/* where a row came from, the one column worth colouring */
+.dt-source[data-source="sw"]      { color: var(--accent-3, #50fa7b); }
+.dt-source[data-source="cache"]   { color: var(--accent-2, #f1fa8c); }
+.dt-source[data-source="network"] { color: var(--mix-400, #999); }
+.dt-source[data-source="opaque"]  { color: var(--mix-600, #666); }
+
+/* :::::: filter bar :::::::::::::::::::::::::::::::::::::::::::: */
+
+.dt-filter {
+  display    : flex;
+  gap        : 0.4em;
+  align-items: center;
+  padding-block: 0.4em;
+}
+
+.dt-filter input {
+  flex         : 1;
+  min-inline-size: 0;
+  padding      : 0.35em 0.5em;
+  border       : 1px solid #fff2;
+  border-radius: 0.3em;
+  background   : #0003;
+  color        : inherit;
+  font         : inherit;
+  font-size    : 0.8rem;
+}
+
+/* :::::: css panel :::::::::::::::::::::::::::::::::::::::::::::: */
+
+#devtools-css aufbau-code {
+  font-size: 0.8rem;
+}
+
+#devtools-css aufbau-code pre {
+  max-block-size: 40dvh;
+  overflow-y    : auto;
+}
