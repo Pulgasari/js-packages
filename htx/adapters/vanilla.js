@@ -58,7 +58,16 @@ export function h (type, props, ...children) {
   return node;
 }
 
-/** the shared instance. use createVanillaHtml() for a registry of your own */
-export const html = createHtml(h, Fragment, { memo: false });
+/** the shared instance. use createVanillaHtml() for a registry of your own */ 
+const htx = createHtml(h, Fragment, { memo: false });
+const createVanillaHtml = (options) => createHtml(h, Fragment, { memo: false, ...options });
 
-export const createVanillaHtml = (options) => createHtml(h, Fragment, { memo: false, ...options });
+// aliases
+const html = htx;
+
+export {
+  html, createVanillaHtml,
+  htx,
+};
+
+export default htx;
