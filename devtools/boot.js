@@ -1,8 +1,9 @@
 // @pulgasari/devtools
 
-import { autoloader }      from '@aufbau/elements';
-import { adoptStylesheet } from '@domina/methods/adoptStylesheet.js';
-import createElement       from '@domina/methods/createElement.js';
+import { autoloader }  from '@aufbau/elements';
+import adoptStylesheet from '@domina/methods/adoptStylesheet.js';
+import createElement   from '@domina/methods/createElement.js';
+import htx             from '@pulgasari/htx/adapters/vanilla.js';
 
 import settings                from './settings.js';
 import { createConsolePanel }  from './panels/console.js';
@@ -11,12 +12,14 @@ import { createDataPanel }     from './panels/data.js';
 import { createDomPanel }      from './panels/dom.js';
 import { createSettingsPanel } from './panels/settings.js';
 
+
+
 autoloader();
 
 // the sheet lives next to this module, so a host page only ever has to know the
 // one entry point. adopted sheets cascade after the page's own author styles,
 // which is why nothing in devtools.css needs !important
-adoptStylesheet(new URL('./devtools.css', import.meta.url).href, { key: 'devtools' });
+adoptStylesheet(new URL('./devtools.css?v=2', import.meta.url).href, { key: 'devtools' });
 
 // :::::: PANELS ::::::::::::::::::::::::::::::::::::::::::::::::
 
@@ -33,6 +36,10 @@ const registry = {
   style    : { icon: 'dashicons:admin-appearance' },
   settings : { icon: 'mdi:tune-variant',            create: createSettingsPanel },
 };
+
+// made with htx
+//const $devtools = htx`<aside id='devtools' />`;
+//htx.tags.$icon = { tag: 'aufbau-icon', args: 'icon', props: { role: 'button', tabIndex: 0 } };
 
 const $devtools = createElement('aside', { id: 'devtools' });
 
