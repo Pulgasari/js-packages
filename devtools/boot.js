@@ -1,5 +1,7 @@
 // @pulgasari/devtools
 
+// :::::: IMPORT
+
 import { autoloader }  from '@aufbau/elements';
 import adoptStylesheet from '@domina/methods/adoptStylesheet.js';
 import createElement   from '@domina/methods/createElement.js';
@@ -12,13 +14,9 @@ import { createDataPanel }     from './panels/data.js';
 import { createDomPanel }      from './panels/dom.js';
 import { createSettingsPanel } from './panels/settings.js';
 
-
+// :::::: INIT
 
 autoloader();
-
-// the sheet lives next to this module, so a host page only ever has to know the
-// one entry point. adopted sheets cascade after the page's own author styles,
-// which is why nothing in devtools.css needs !important
 adoptStylesheet(new URL('./devtools.css?v=2', import.meta.url).href, { key: 'devtools' });
 
 // :::::: PANELS ::::::::::::::::::::::::::::::::::::::::::::::::
