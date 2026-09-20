@@ -4,7 +4,8 @@ import { autoloader } from '@aufbau/elements';
 import createElement  from '@domina/methods/createElement.js';
 autoloader();
 
-
+// ::::::
+//const createIcon = (icon, props = {}) => createElement('aufbau-icon', { icon, ...props });
 
 const tapsList = [
   { panel: 'console' , icon: 'mdi:console-line' },
@@ -37,8 +38,9 @@ const $panels = {
 
 const $menu = createElement('menu');
 for (const key in taps) {
+  //const $icon = createIcon(taps[key], { onclick: $panels.toggle(key) });
   const $icon = createElement('aufbau-icon', {
-    name    : taps[key], 
+    icon    : taps[key], 
     onclick : $panels.toggle(key),
   });
   $menu.append($icon);
