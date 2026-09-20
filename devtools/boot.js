@@ -1,8 +1,8 @@
 // @pulgasari/devtools
 
-import { autoloader }     from '@aufbau/elements';
+import { autoloader }      from '@aufbau/elements';
 import { adoptStylesheet } from '@domina/methods/adoptStylesheet.js';
-import createElement      from '@domina/methods/createElement.js';
+import createElement       from '@domina/methods/createElement.js';
 
 import settings                from './settings.js';
 import { createConsolePanel }  from './panels/console.js';
@@ -35,22 +35,40 @@ const registry = {
 };
 
 const $devtools = createElement('aside', { id: 'devtools' });
-const $menu     = createElement('menu');
-const panels    = {};
 
-for (const [key, { icon, create }] of Object.entries(registry)) {
+// two groups, so the menu can push one to each edge: the panel tabs, and the
+// actions that are not panels at all
+const $tabs    = createElement('li');
+const $actions = createElement('li');
+const $menu    = createElement('menu', {}, $tabs, $actions);
+
+const panels = {};
+const $icons = {};
+
+const icon = (props, group) => {
+  const $icon = createElement('aufbau-icon', { role: 'button', tabIndex: 0, ...props });
+  group.append($icon);
+  return $icon;
+};
+
+for (const [key, { icon: name, create }] of Object.entries(registry)) {
   const panel    = create?.() ?? { $content: createElement('em', { textContent: 'coming soon ...' }) };
   const $section = createElement('section', { hidden: true, id: `devtools-${key}` }, panel.$content);
 
-  panels[key] = { ...panel, $section };
+  // the panel object itself, not a copy: spreading it would mean a later
+  // assignment like panels.dom.onPickChange lands on the copy while the panel
+  // goes on calling its own, and the callback silently never fires
+  panel.$section = $section;
+  panels[key] = panel;
 
   // the handler has to stay a function reference — calling toggle() here would
   // flip the panel at build time and register nothing
-  $menu.append(createElement('aufbau-icon', {
-    icon,
+  $icons[key] = icon({
+    icon    : name,
     title   : key,
+    'aria-pressed': 'false',
     onClick : () => toggle(key),
-  }));
+  }, $tabs);
 
   $devtools.append($section);
 }
@@ -68,18 +86,47 @@ function toggle (key, force) {
 
   panel.$section.hidden = !open;
   open ? panel.onShow?.() : panel.onHide?.();
+
+  for (const [name, $icon] of Object.entries($icons)) {
+    $icon.setAttribute('aria-pressed', String(!panels[name].$section.hidden));
+  }
 }
+
+// :::::: ACTIONS :::::::::::::::::::::::::::::::::::::::::::::::
+
+// picking belongs to the element panel but is wanted from anywhere, so the menu
+// drives it and opens that panel along the way — a pick with nowhere to land
+// would just move $0 silently
+const $pick = icon({
+  icon    : 'mdi:cursor-default-click-outline',
+  title   : 'pick an element',
+  'aria-pressed': 'false',
+  onClick : () => {
+    const on = panels.dom.pick();
+    if (on) toggle('dom', true);
+  },
+}, $actions);
+
+// the panel reports back, because it also disarms itself once something is
+// picked and when it is hidden
+panels.dom.onPickChange = (on) => $pick.setAttribute('aria-pressed', String(on));
+
+icon({ icon: 'mdi:reload', title: 'reload the page', onClick: () => location.reload() }, $actions);
 
 $devtools.append($menu);
 
-// the two settings that change the panel's own shape ride as custom properties,
-// so devtools.css stays the single place that decides what they mean
-const CHROME_KEYS = new Set(['panelHeight', 'fontSize', 'wrapLines']);
+// :::::: CHROME ::::::::::::::::::::::::::::::::::::::::::::::::
 
+const CHROME_KEYS = new Set(['fontSize', 'panelHeight', 'position', 'wrapLines']);
+
+// the settings that change the panel's own shape ride as custom properties and
+// data attributes, so devtools.css stays the single place that decides what they
+// mean
 const applyChrome = () => {
   $devtools.style.setProperty('--dt-height', `${settings.get('panelHeight')}dvh`);
   $devtools.style.setProperty('--dt-font',   `${settings.get('fontSize')}px`);
-  $devtools.dataset.wrap = settings.get('wrapLines') ? 'on' : 'off';
+  $devtools.dataset.wrap     = settings.get('wrapLines') ? 'on' : 'off';
+  $devtools.dataset.position = settings.get('position');
 };
 
 applyChrome();

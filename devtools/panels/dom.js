@@ -420,16 +420,24 @@ export function createDomPanel () {
     select(element, { scroll: true });
   }
 
-  const $pick = el('button', { type: 'button', textContent: 'pick', onClick: () => setPicking(!picking) });
-
+  // picking is driven from the menu rather than from here, so the state has to
+  // travel back out: the panel disarms itself once something is picked and
+  // whenever it is hidden, and the menu icon has to follow either way
   function setPicking (on) {
+    if (on === picking) return picking;
+
     picking = on;
-    on ? $pick.dataset.armed = 'pick' : delete $pick.dataset.armed;
-    $pick.textContent = on ? 'tap an element…' : 'pick';
-    document.documentElement.classList.toggle('dt-picking', on);
+
+    // an attribute, not a class: tagLabel() renders id and classes, so a class
+    // here would show up as <html.dt-picking> in the tree — devtools leaving a
+    // mark on the page it is inspecting
+    on ? document.documentElement.dataset.dtPicking = '' : delete document.documentElement.dataset.dtPicking;
 
     const method = on ? 'addEventListener' : 'removeEventListener';
     for (const type of ['pointerdown', 'click', 'touchstart']) document[method](type, onPick, true);
+
+    api.onPickChange?.(on);
+    return picking;
   }
 
   // ── selector search: on a phone, scrolling a tree to find a node is hopeless
@@ -452,13 +460,16 @@ export function createDomPanel () {
     onClick: () => { renderTree(); if (selected?.isConnected) { reveal(selected); select(selected, { scroll: true }); } },
   });
 
-  const $content = [el('header', {}, $pick, $find, $refresh), $tree, $detail];
+  const $content = [el('header', {}, $find, $refresh), $tree, $detail];
 
   renderTree();
   renderDetail();
 
-  return {
+  const api = {
     $content,
+
+    /** @param on omitted toggles. @returns the state the panel is now in */
+    pick (on) { return setPicking(on ?? !picking); },
 
     onShow () {
       // the tree is a snapshot; the page has moved on since it was built
@@ -468,6 +479,8 @@ export function createDomPanel () {
 
     onHide () { setPicking(false); hideHighlight(); },
   };
+
+  return api;
 }
 
 export default createDomPanel;
