@@ -25,7 +25,7 @@ modified fork of htm (developit/htm). changes vs upstream:
 
 // :::::: IMPORTS
 
-import { isArray, isObject, isString } from '@pulgasari/is';
+import { isArray, isFn, isObject, isString } from '@pulgasari/is';
 
 // :::::: CONSTANTS
 
@@ -46,6 +46,13 @@ const PROP_APPEND   = MODE_PROP_APPEND;
 
 // :::::: PROP MERGING
 
+/**
+ * a standalone quoted value in a tag — <$icon 'bx:search' /> — collects here
+ * rather than becoming a boolean attribute, which is what <a disabled> is.
+ * a symbol so nothing written in a template can reach the same slot.
+ */
+export const POSITIONAL = Symbol('positional');
+
 const CLASSES = Symbol('classes');
 const STYLES  = Symbol('styles');
 
@@ -63,7 +70,8 @@ function collect (props, symbol, key, value) {
 }
 
 function setProp (props, key, value) {
-       if (isClassKey(key)) collect(props, CLASSES, key, value);
+       if (key === POSITIONAL) (props[key] || (props[key] = [])).push(value);
+  else if (isClassKey(key)) collect(props, CLASSES, key, value);
   else if (key === 'style') collect(props, STYLES, key, value);
   else props[key] = value;
 }
@@ -116,7 +124,13 @@ function finalize (props) {
 
 // :::::: EVALUATE
 
-function evaluate (h, built, fields, args) {
+/*
+`memo` caches a fully static child subtree back into `built` and reuses it on
+every later call. that is the right trade for an immutable vnode and the wrong
+one for a dom node: the second render would get the very same node and simply
+move it out of the first tree. adapters that build real dom pass memo: false.
+*/
+function evaluate (h, built, fields, args, memo = true) {
   let tmp;
   built[0] = 0;
 
@@ -138,10 +152,10 @@ function evaluate (h, built, fields, args) {
       appendProp(args[1], built[++i], value);
     }
     else if (type) {
-      tmp = h.apply(value, evaluate(h, value, fields, ['', null]));
+      tmp = h.apply(value, evaluate(h, value, fields, ['', null], memo));
       args.push(tmp);
 
-      if (value[0]) {
+      if (value[0] || !memo) {
         built[0] |= 2;
       }
       else {
@@ -164,6 +178,7 @@ function build (statics) {
   let buffer  = '';
   let current = [0];
   let quote   = '';
+  let quoted  = false;
   
   
 
@@ -178,8 +193,16 @@ function build (statics) {
     else if (mode === MODE_WHITESPACE && buffer === '...' && field) {
       current.push(PROPS_ASSIGN, field, 0);
     }
+    // a bare interpolation in a tag — <$icon ${name} /> — used to fall through
+    // every branch and be dropped on the floor
+    else if (mode === MODE_WHITESPACE && !buffer && field) {
+      current.push(PROP_SET, field, 0, POSITIONAL);
+    }
     else if (mode === MODE_WHITESPACE && buffer && !field) {
-      current.push(PROP_SET, 0, true, buffer);
+      // the quote is the whole distinction: 'bx:search' is a positional value,
+      // a bare word is a boolean attribute (<a disabled>)
+      quoted ? current.push(PROP_SET, 0, buffer, POSITIONAL)
+             : current.push(PROP_SET, 0, true,   buffer);
     }
     else if (mode >= MODE_PROP_SET) {
       if (buffer || (!field && mode === MODE_PROP_SET)) {
@@ -193,6 +216,7 @@ function build (statics) {
     }
 
     buffer = '';
+    quoted = false;
   };
 
   for (let i = 0; i < statics.length; i++) {
@@ -221,7 +245,7 @@ function build (statics) {
         else buffer = char + buffer[0];
       }
       else if (quote) {
-        if (char === quote) quote = '';
+        if (char === quote) { quote = ''; if (mode === MODE_WHITESPACE) quoted = true; }
         else buffer += char;
       }
       else if (char === '"' || char === "'") {
@@ -263,24 +287,119 @@ function build (statics) {
   return current;
 }
 
+// :::::: SHORTHAND TAGS ::::::::::::::::::::::::::::::::::::::::
+
+/*
+a shorthand is a tag whose name starts with $ and resolves through a registry:
+
+  html.define('icon', { tag: 'aufbau-icon', args: ['icon', 'size'], props: { mode: 'mask' } });
+
+  <$icon 'bx:search' />          ->  <aufbau-icon icon="bx:search" mode="mask">
+  <$icon 'bx:search' '2em' />    ->  <aufbau-icon icon="bx:search" size="2em" mode="mask">
+  <$icon 'x' mode="image" />     ->  <aufbau-icon icon="x" mode="image">
+
+precedence runs defaults < positional < written attribute, so a default is a
+starting point and anything spelled out on the tag wins.
+
+a positional past the declared args becomes a child, which is what makes the
+args list optional: define('em', 'strong') and <$em 'hi' /> is <strong>hi</strong>.
+*/
+
+// 'aufbau-icon' | Component | { tag, args?, props? }
+function normalizeTag (spec) {
+  if (isString(spec) || isFn(spec)) return { tag: spec, args: [], props: null };
+  if (!isObject(spec)) throw new Error('[htx] a shorthand is a tag name, a component, or { tag, args, props }');
+
+  return { tag: spec.tag, args: spec.args ?? [], props: spec.props ?? null };
+}
+
+/**
+ * merges defaults, positionals and written attributes into one props object.
+ * @returns [props, extraChildren]
+ */
+function resolveTag (props, entry) {
+  const out = {};
+
+  // defaults first, so a class or style written on the tag appends to them
+  // instead of replacing them
+  if (entry?.props) for (const key in entry.props) setProp(out, key, entry.props[key]);
+
+  if (props) {
+    for (const key in props) setProp(out, key, props[key]);
+
+    // class and style ride on symbols, which for-in does not reach. they are
+    // concatenated rather than overwritten, same as two class props on one tag
+    for (const symbol of [CLASSES, STYLES]) {
+      if (props[symbol]) out[symbol] = [...(out[symbol] ?? []), ...props[symbol]];
+    }
+  }
+
+  const positional = props?.[POSITIONAL];
+  if (!positional) return [out, []];
+
+  const args  = entry?.args ?? [];
+  const extra = [];
+
+  for (let i = 0; i < positional.length; i++) {
+    const name = args[i];
+
+    // the slot is skipped when the tag spells that attribute out — written
+    // always beats positional. anything past the declared slots is a child
+    if (!name) extra.push(positional[i]);
+    else if (!props || !(name in props)) out[name] = positional[i];
+  }
+
+  return [out, extra];
+}
+
 // :::::: TAG FUNCTION
 
-function createHtml (h, Fragment) {
-  const cache = new Map;
+function createHtml (h, Fragment, { memo = true, tags } = {}) {
+  const cache    = new Map;
+  const registry = new Map;
 
   // an empty tag (<>...</>) leaves the tag name as '', which falls back to Fragment.
   // `this` is the staticness bit field and is forwarded untouched.
   const hx = function (type, props, ...children) {
-    return h.apply(this, [type || Fragment, finalize(props), ...children]);
+    const shorthand = isString(type) && type[0] === '$';
+    let entry = null;
+
+    if (shorthand) {
+      entry = registry.get(type.slice(1));
+      // silently rendering a <$foo> element would be a typo nobody finds: as a
+      // tag name it is invalid for createElement and merely unknown to a vdom
+      if (!entry) throw new Error(`[htx] unknown shorthand tag <${type}>`);
+      type = entry.tag;
+    }
+
+    // a positional on a plain tag has nowhere to go but the children, which
+    // makes <div 'text' /> read as <div>text</div>
+    if (!shorthand && !props?.[POSITIONAL]) return h.apply(this, [type || Fragment, finalize(props), ...children]);
+
+    const [resolved, extra] = resolveTag(props, entry);
+    return h.apply(this, [type || Fragment, finalize(resolved), ...extra, ...children]);
   };
 
-  return function html (statics) {
+  function html (statics) {
     let built = cache.get(statics);
     if (!built) cache.set(statics, built = build(statics));
 
-    const result = evaluate(hx, built, arguments, []);
+    const result = evaluate(hx, built, arguments, [], memo);
     return result.length > 1 ? result : result[0];
+  }
+
+  /** define('icon', spec) or define({ icon: spec, box: spec }) */
+  html.define = (name, spec) => {
+    const map = isString(name) ? { [name]: spec } : name;
+    for (const key in map) registry.set(key, normalizeTag(map[key]));
+    return html;
   };
+
+  html.tags = registry;
+
+  if (tags) html.define(tags);
+
+  return html;
 }
 
 export { createHtml, build, evaluate };
