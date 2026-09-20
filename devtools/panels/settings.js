@@ -16,22 +16,22 @@ const el = createElement;
 function control (key, entry, value) {
   if (entry.type === 'boolean') {
     return el('input', {
-      type: 'checkbox', checked: value, name: key,
+      type: 'checkbox', id: `dt-set-${key}`, checked: value, name: key,
       onChange: (event) => settings.set(key, event.target.checked),
     });
   }
 
   if (entry.type === 'enum') {
-    const $select = el('select', { name: key, onChange: (event) => settings.set(key, event.target.value) },
+    const $select = el('select', { id: `dt-set-${key}`, name: key, onChange: (event) => settings.set(key, event.target.value) },
       ...entry.values.map(option => el('option', { value: option, textContent: option, selected: option === value })));
     return $select;
   }
 
   // a range plus a live readout: on a phone a slider is reachable where a number
   // stepper's arrows are not
-  const $out   = el('output', { className: 'dt-set-out', textContent: `${value}${entry.unit ? ` ${entry.unit}` : ''}` });
+  const $out   = el('output', { textContent: `${value}${entry.unit ? ` ${entry.unit}` : ''}` });
   const $range = el('input', {
-    type: 'range', name: key, min: entry.min, max: entry.max, step: entry.step, value,
+    type: 'range', id: `dt-set-${key}`, name: key, min: entry.min, max: entry.max, step: entry.step, value,
     onInput: (event) => {
       const next = Number(event.target.value);
       $out.textContent = `${next}${entry.unit ? ` ${entry.unit}` : ''}`;
@@ -39,25 +39,26 @@ function control (key, entry, value) {
     },
   });
 
-  return el('span', { className: 'dt-set-range' }, $range, $out);
+  return [$range, $out];
 }
 
 export function createSettingsPanel () {
-  const $body = el('div', { className: 'dt-body' });
+  const $body = el('div'); // rebuilt wholesale on reset, so it keeps a container
 
   const build = () => {
     const values = settings.all();
 
-    $body.replaceChildren(...Object.entries(SPEC).map(([key, entry]) => el('label', { className: 'dt-row dt-set-row' },
-      el('span', { className: 'dt-key', textContent: entry.label ?? key }),
-      el('span', { className: 'dt-val' }, control(key, entry, values[key])),
-    )));
+    // dt/dd rather than a <label> per row: the dl is what aligns the two columns,
+    // and a control inside dd is still reachable by tapping it
+    $body.replaceChildren(el('dl', {}, ...Object.entries(SPEC).flatMap(([key, entry]) => [
+      el('dt', {}, el('label', { htmlFor: `dt-set-${key}`, textContent: entry.label ?? key })),
+      el('dd', {}, control(key, entry, values[key])),
+    ])));
 
     $body.append(
-      el('p', { className: 'dt-note', textContent:
+      el('small', { textContent:
         'panel height and font size apply immediately. the console buffer only grows from here on — entries already dropped are gone, and the page-side recorder keeps its own fixed cap, so the history available at mount is whatever that held.' }),
-      el('div', { className: 'dt-actions' },
-        el('button', { type: 'button', className: 'dt-btn', textContent: 'reset to defaults', onClick: () => settings.reset() })),
+      el('div', {}, el('button', { type: 'button', textContent: 'reset to defaults', onClick: () => settings.reset() })),
     );
   };
 

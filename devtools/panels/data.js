@@ -33,33 +33,35 @@ const el = createElement;
  * setters, so polling never touches the dom structure — only text nodes.
  */
 function createRows () {
-  const $el = el('div', { className: 'dt-body' });
+  // the key/value pairs share one <dl>, which is also what lays the two columns
+  // out. anything else a section needs goes after it, in document order
+  const $list = el('dl');
+  const $el   = el('div', {}, $list);
 
   return {
     $el,
 
     /** @returns {(value: string, state?: string) => void} */
     add (label) {
-      const $val = el('span', { className: 'dt-val', textContent: '—' });
-      $el.append(el('div', { className: 'dt-row' }, el('span', { className: 'dt-key', textContent: label }), $val));
+      const $value = el('dd', { textContent: '—' });
+      $list.append(el('dt', { textContent: label }), $value);
 
       return (value, state) => {
-        $val.textContent = value ?? '—';
-        state ? $val.dataset.state = state : delete $val.dataset.state;
+        $value.textContent = value ?? '—';
+        state ? $value.dataset.state = state : delete $value.dataset.state;
       };
     },
 
-    note (text) { $el.append(el('p', { className: 'dt-note', textContent: text })); return this; },
+    note (text) { $el.append(el('small', { textContent: text })); return this; },
     add$ (node) { $el.append(node); return node; },
   };
 }
 
 /** a labelled bar. returns a setter taking the raw used/total pair. */
 function createMeter (label) {
-  const $label = el('span', { className: 'dt-key', textContent: label });
-  const $value = el('span', { className: 'dt-val', textContent: '—' });
+  const $value = el('dd', { textContent: '—' });
   const $bar   = el('aufbau-progress', { value: 0, max: 100 });
-  const $meter = el('div', { className: 'dt-meter' }, el('div', { className: 'dt-row' }, $label, $value), $bar);
+  const $meter = el('div', {}, el('dl', {}, el('dt', { textContent: label }), $value), $bar);
 
   const set = (used, total, suffix = '') => {
     if (!Number.isFinite(used) || !Number.isFinite(total) || total <= 0) {
@@ -74,6 +76,7 @@ function createMeter (label) {
     $value.textContent = `${fmt.bytes(used)} / ${fmt.bytes(total)}${suffix} · ${share.toFixed(share < 10 ? 1 : 0)}%`;
     $bar.setAttribute('value', Math.min(share, 100).toFixed(1));
     $meter.dataset.state = share > 90 ? 'bad' : share > 70 ? 'warn' : 'ok';
+    $value.dataset.state = $meter.dataset.state === 'ok' ? '' : $meter.dataset.state;
   };
 
   return { $el: $meter, set };
@@ -104,18 +107,18 @@ function armAction ($btn, label, run) {
 }
 
 const button = (label, onClick, { destructive = false } = {}) => {
-  const $btn = el('button', { type: 'button', className: 'dt-btn', textContent: label });
+  const $btn = el('button', { type: 'button', textContent: label });
   destructive ? armAction($btn, label, onClick) : $btn.addEventListener('click', onClick);
   return $btn;
 };
 
-const actions = (...$buttons) => el('div', { className: 'dt-actions' }, ...$buttons);
+const actions = (...$buttons) => el('div', {}, ...$buttons);
 
 /** a <details> section with a header badge and a refresh hook */
 function createSection ({ id, label, open = false }) {
-  const $badge   = el('span', { className: 'dt-badge' });
+  const $badge   = el('small');
   const $summary = el('summary', {}, el('span', { textContent: label }), $badge);
-  const $details = el('details', { className: 'dt-section', id: `dt-${id}` }, $summary);
+  const $details = el('details', { id: `dt-${id}` }, $summary);
 
   // open state is per section and survives reloads, a panel that forgets what
   // you had open is unusable on a small screen. every section shares the one key,
@@ -306,12 +309,12 @@ function storageSection () {
     for (const { key, size } of measured.keys.slice(0, 20)) {
       $body.append(el('tr', {},
         el('td', { title: key, textContent: fmt.truncate(key, 34) }),
-        el('td', { dataset: { numeric: '1' }, textContent: fmt.bytes(size) }),
+        el('td', { dataset: { numeric: '' }, textContent: fmt.bytes(size) }),
         el('td', {}, button('del', () => { localStorage.removeItem(key); renderKeys(); }, { destructive: true })),
       ));
     }
 
-    $keys.replaceChildren(el('table', { className: 'dt-table' },
+    $keys.replaceChildren(el('table', {},
       el('thead', {}, el('tr', {}, el('th', { textContent: 'key' }), el('th', { textContent: 'est. size' }), el('th', {}))),
       $body,
     ));
@@ -330,8 +333,8 @@ function storageSection () {
       const cache = await caches.open(name);
       const keys  = await cache.keys();
 
-      const $size = el('td', { dataset: { numeric: '1' }, textContent: '—' });
-      const $age  = el('td', { dataset: { numeric: '1' }, textContent: '—' });
+      const $size = el('td', { dataset: { numeric: '' }, textContent: '—' });
+      const $age  = el('td', { dataset: { numeric: '' }, textContent: '—' });
 
       // reading every body is the expensive part, so it stays opt-in per cache.
       // the bunker stamp rides along as a header, which is how a cached entry
@@ -356,7 +359,7 @@ function storageSection () {
 
       $body.append(el('tr', {},
         el('td', { title: name, textContent: fmt.truncate(name, 28) }),
-        el('td', { dataset: { numeric: '1' }, textContent: String(keys.length) }),
+        el('td', { dataset: { numeric: '' }, textContent: String(keys.length) }),
         $size,
         $age,
         el('td', {}, button('measure', measure)),
@@ -364,13 +367,13 @@ function storageSection () {
       ));
     }
 
-    $caches.replaceChildren(names.length ? el('table', { className: 'dt-table' },
+    $caches.replaceChildren(names.length ? el('table', {},
       el('thead', {}, el('tr', {},
         el('th', { textContent: 'cache' }), el('th', { textContent: 'entries' }),
         el('th', { textContent: 'bytes' }), el('th', { textContent: 'oldest' }), el('th', {}), el('th', {}),
       )),
       $body,
-    ) : el('p', { className: 'dt-empty', textContent: 'no caches' }));
+    ) : el('em', { textContent: 'no caches' }));
   }
 
   // ── indexedDB: databases() is unsupported on older safari and never reports size
@@ -419,7 +422,7 @@ function storageSection () {
 
       $body.append(el('tr', {},
         el('td', { title: name, textContent: fmt.truncate(name, 24) }),
-        el('td', { dataset: { numeric: '1' }, textContent: `v${version}` }),
+        el('td', { dataset: { numeric: '' }, textContent: `v${version}` }),
         $stores,
         el('td', {}, button('count', inspect)),
         el('td', {}, button('drop', () => new Promise((resolve) => {
@@ -429,13 +432,13 @@ function storageSection () {
       ));
     }
 
-    $dbs.replaceChildren(list.length ? el('table', { className: 'dt-table' },
+    $dbs.replaceChildren(list.length ? el('table', {},
       el('thead', {}, el('tr', {},
         el('th', { textContent: 'database' }), el('th', { textContent: 'ver' }),
         el('th', { textContent: 'stores' }), el('th', {}), el('th', {}),
       )),
       $body,
-    ) : el('p', { className: 'dt-empty', textContent: 'no databases' }));
+    ) : el('em', { textContent: 'no databases' }));
   }
 
   async function refresh () {
@@ -528,7 +531,7 @@ function networkSection () {
   const $filter = el('input', { type: 'search', placeholder: 'filter by url or type…', autocapitalize: 'off', autocorrect: 'off', spellcheck: false });
   const $table  = el('div');
 
-  rows.$el.append(el('div', { className: 'dt-filter' }, $filter,
+  rows.$el.append(el('header', {}, $filter,
     button('clear', () => { entries.length = 0; performance.clearResourceTimings?.(); refresh(); })));
   rows.$el.append($table);
 
@@ -545,11 +548,11 @@ function networkSection () {
 
   const cell = (entry, column) => {
     if (column.key === 'name')   return el('td', { title: entry.name, textContent: fmt.url(entry.name) });
-    if (column.key === 'source') return el('td', { className: 'dt-source', dataset: { source: entry.source }, textContent: entry.source });
+    if (column.key === 'source') return el('td', { dataset: { source: entry.source }, textContent: entry.source });
     if (column.key === 'transferSize') {
-      return el('td', { dataset: { numeric: '1' }, textContent: entry.source === 'opaque' ? '?' : fmt.bytes(entry.transferSize) });
+      return el('td', { dataset: { numeric: '' }, textContent: entry.source === 'opaque' ? '?' : fmt.bytes(entry.transferSize) });
     }
-    if (column.key === 'duration') return el('td', { dataset: { numeric: '1' }, textContent: fmt.ms(entry.duration) });
+    if (column.key === 'duration') return el('td', { dataset: { numeric: '' }, textContent: fmt.ms(entry.duration) });
 
     return el('td', { textContent: entry.initiatorType || '—' });
   };
@@ -579,9 +582,9 @@ function networkSection () {
     }
 
     $table.replaceChildren(visible.length
-      ? el('table', { className: 'dt-table' }, el('thead', {}, $head),
+      ? el('table', {}, el('thead', {}, $head),
           el('tbody', {}, ...visible.map(entry => el('tr', {}, ...columns.map(column => cell(entry, column))))))
-      : el('p', { className: 'dt-empty', textContent: entries.length ? 'nothing matches the filter' : 'no resources recorded yet' }));
+      : el('em', { textContent: entries.length ? 'nothing matches the filter' : 'no resources recorded yet' }));
   }
 
   function refresh () {
@@ -664,8 +667,8 @@ try {
 // :::::: PANEL :::::::::::::::::::::::::::::::::::::::::::::::::
 
 export function createDataPanel () {
-  const sections = [runtimeSection(), memorySection(), storageSection(), networkSection()];
-  const $content = el('div', {}, ...sections.map(section => section.$el));
+  const sections = [memorySection(), networkSection(), runtimeSection(), storageSection()];
+  const $content = sections.map(section => section.$el);
 
   let timer = null;
 
@@ -692,10 +695,11 @@ export function createDataPanel () {
   settings.subscribe((key) => { if (timer && (key === null || key === 'pollMs')) startPolling(); });
 
   // a section opened while the panel is already visible should fill immediately
-  $content.addEventListener('toggle', (event) => {
-    const section = sections.find(candidate => candidate.$el === event.target);
-    if (section && event.target.open) Promise.resolve(section.refresh()).catch(() => {});
-  }, true);
+  for (const section of sections) {
+    section.$el.addEventListener('toggle', () => {
+      if (section.$el.open) Promise.resolve(section.refresh()).catch(() => {});
+    });
+  }
 
   document.addEventListener('visibilitychange', () => { if (timer) refreshAll(true); });
 

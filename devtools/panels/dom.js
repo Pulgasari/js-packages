@@ -30,10 +30,7 @@ panel's own overflow cannot clip it. pointer-events stay off throughout — pick
 mode reads elementFromPoint(), and a highlight that could be hit would return
 itself for every tap.
 */
-const $highlight = el('div', { id: 'devtools-highlight', className: 'hidden' },
-  el('div', { className: 'dt-hl-box' }),
-  el('div', { className: 'dt-hl-label' }),
-);
+const $highlight = el('div', { id: 'devtools-highlight', hidden: true }, el('div'), el('span'));
 
 const $hlBox   = $highlight.firstElementChild;
 const $hlLabel = $highlight.lastElementChild;
@@ -60,10 +57,10 @@ function highlight (element) {
     insetBlockStart : `${above ? rect.top - 22 : rect.bottom + 2}px`,
   });
 
-  $highlight.classList.remove('hidden');
+  $highlight.hidden = false;
 }
 
-const hideHighlight = () => $highlight.classList.add('hidden');
+const hideHighlight = () => { $highlight.hidden = true; };
 
 // :::::: LABELS ::::::::::::::::::::::::::::::::::::::::::::::::
 
@@ -111,12 +108,12 @@ const declarations = (rule) => {
 // a curated default, because getComputedStyle exposes around 340 properties and
 // a wall of them answers nothing. everything else is one filter keystroke away
 const KEY_STYLES = [
-  'display', 'position', 'inset-block-start', 'inset-inline-start', 'z-index',
-  'inline-size', 'block-size', 'margin', 'padding', 'border', 'overflow',
-  'flex', 'flex-direction', 'gap', 'grid-template-columns', 'align-items', 'justify-content',
-  'color', 'background-color', 'font-family', 'font-size', 'line-height',
-  'opacity', 'transform', 'visibility', 'pointer-events',
-];
+  'align-items', 'background-color', 'block-size', 'border', 'color', 'display',
+  'flex', 'flex-direction', 'font-family', 'font-size', 'gap',
+  'grid-template-columns', 'inline-size', 'inset-block-start', 'inset-inline-start',
+  'justify-content', 'line-height', 'margin', 'opacity', 'overflow', 'padding',
+  'pointer-events', 'position', 'transform', 'visibility', 'z-index',
+].sort();
 
 export function createDomPanel () {
   document.body.append($highlight);
@@ -128,7 +125,7 @@ export function createDomPanel () {
 
   // ── tree
 
-  const $tree = el('div', { className: 'dt-tree' });
+  const $tree = el('nav');
 
   function childrenOf (element) {
     const out = [];
@@ -147,17 +144,16 @@ export function createDomPanel () {
 
   function buildRow (node) {
     if (node.nodeType === 3) {
-      return el('div', { className: 'dt-tree-row is-text', textContent: `"${fmt.truncate(node.data.trim(), 60)}"` });
+      return el('div', { dataset: { node: 'text' }, textContent: `"${fmt.truncate(node.data.trim(), 60)}"` });
     }
 
     if (node.nodeType === 8) {
-      return el('div', { className: 'dt-tree-row is-comment', textContent: `<!-- ${fmt.truncate(node.data.trim(), 50)} -->` });
+      return el('div', { dataset: { node: 'comment' }, textContent: `<!-- ${fmt.truncate(node.data.trim(), 50)} -->` });
     }
 
     const kids     = childrenOf(node);
-    const $label   = el('span', { className: 'dt-tree-tag', textContent: tagLabel(node) });
-    const $summary = el('summary', { className: 'dt-tree-row' }, $label);
-    const $details = el('details', { className: `dt-tree-node${kids.length ? '' : ' is-leaf'}` }, $summary);
+    const $summary = el('summary', { textContent: tagLabel(node) });
+    const $details = el('details', { ...(kids.length ? {} : { dataset: { leaf: '' } }) }, $summary);
 
     // tapping the row selects; only the disclosure triangle expands. on a phone
     // one gesture has to mean one thing
@@ -171,7 +167,7 @@ export function createDomPanel () {
       if (built) return;
       built = true;
       for (const child of childrenOf(node)) $details.append(buildRow(child));
-      if (!kids.length) $details.append(el('div', { className: 'dt-tree-row is-empty', textContent: '(empty)' }));
+      if (!kids.length) $details.append(el('div', { dataset: { node: 'empty' }, textContent: '(empty)' }));
     };
 
     // built here rather than in the toggle handler, because reveal() has to open
@@ -212,7 +208,7 @@ export function createDomPanel () {
 
   // ── details
 
-  const $detail = el('div', { className: 'dt-detail' });
+  const $detail = el('article');
 
   let styleFilter = '';
   const $styleFilter = el('input', {
@@ -296,14 +292,12 @@ export function createDomPanel () {
     return { rect, margin: side('margin'), border: side('border'), padding: side('padding') };
   }
 
-  const row = (key, value, className = '') => el('div', { className: 'dt-row' },
-    el('span', { className: 'dt-key', textContent: key }),
-    el('span', { className: `dt-val ${className}`, textContent: value }),
-  );
+  const pairs = (...entries) => el('dl', {}, ...entries.flatMap(([key, value]) =>
+    [el('dt', { textContent: key }), el('dd', { textContent: value })]));
 
   function renderDetail () {
     if (!selected) {
-      $detail.replaceChildren(el('p', { className: 'dt-empty', textContent: 'nothing selected — tap a row, or use pick' }));
+      $detail.replaceChildren(el('em', { textContent: 'nothing selected — tap a row, or use pick' }));
       return;
     }
 
@@ -312,10 +306,10 @@ export function createDomPanel () {
     const parts = [];
 
     // ── path
-    parts.push(el('div', { className: 'dt-detail-head' },
-      el('code', { className: 'dt-path', textContent: pathOf(selected) }),
+    parts.push(el('header', {},
+      el('code', { textContent: pathOf(selected) }),
       el('button', {
-        type: 'button', className: 'dt-btn', textContent: 'copy',
+        type: 'button', textContent: 'copy',
         onClick: (event) => {
           navigator.clipboard?.writeText(pathOf(selected)).then(() => { event.target.textContent = 'copied'; });
         },
@@ -324,44 +318,45 @@ export function createDomPanel () {
 
     // ── box model
     const edges = (list) => list.every(value => value === list[0]) ? String(list[0]) : list.join(' / ');
-    parts.push(section('box model', [
-      row('size',    `${Math.round(box.rect.width)} × ${Math.round(box.rect.height)}`),
-      row('position', `${Math.round(box.rect.left)}, ${Math.round(box.rect.top)}`),
-      row('margin',  edges(box.margin)),
-      row('border',  edges(box.border)),
-      row('padding', edges(box.padding)),
-    ]));
+    parts.push(section('box model', [pairs(
+      ['size',     `${Math.round(box.rect.width)} × ${Math.round(box.rect.height)}`],
+      ['position', `${Math.round(box.rect.left)}, ${Math.round(box.rect.top)}`],
+      ['margin',   edges(box.margin)],
+      ['border',   edges(box.border)],
+      ['padding',  edges(box.padding)],
+    )]));
 
     // ── attributes
     const attrs = [...selected.attributes];
     parts.push(section(`attributes (${attrs.length})`, attrs.length
-      ? attrs.map(attribute => row(attribute.name, fmt.truncate(attribute.value, 80)))
-      : [el('p', { className: 'dt-empty', textContent: 'none' })]));
+      ? [pairs(...attrs.map(attribute => [attribute.name, fmt.truncate(attribute.value, 80)]))]
+      : [el('em', { textContent: 'none' })]));
 
     // ── computed styles
+    // getComputedStyle enumerates in its own order, which is neither alphabetical
+    // nor stable enough to scan
     const keys = styleFilter
-      ? [...style].filter(prop => prop.includes(styleFilter)).slice(0, 80)
+      ? [...style].filter(prop => prop.includes(styleFilter)).sort().slice(0, 80)
       : KEY_STYLES;
 
     parts.push(section(`computed${styleFilter ? '' : ' (key properties)'}`, [
-      $styleFilter,
-      ...keys.map(prop => row(prop, style.getPropertyValue(prop) || '—')),
-      ...(styleFilter ? [] : [el('p', { className: 'dt-note', textContent: 'filter above to reach any of the ~340 computed properties' })]),
+      el('header', {}, $styleFilter),
+      pairs(...keys.map(prop => [prop, style.getPropertyValue(prop) || '—'])),
+      ...(styleFilter ? [] : [el('small', { textContent: 'filter above to reach any of the ~340 computed properties' })]),
     ]));
 
     // ── matched rules
     const { found, blocked } = matchedRules(selected);
     parts.push(section(`matched rules (${found.length})`, [
-      ...found.slice(0, 40).map(({ rule, context, selector }) => el('div', { className: 'dt-rule' },
-        el('div', { className: 'dt-rule-head' },
-          el('code', { textContent: selector }),
-          el('span', { className: 'dt-rule-src', textContent: context || sourceOf(rule) }),
-        ),
-        el('pre', { className: 'dt-rule-body', textContent: declarations(rule) }),
-      )),
-      ...(found.length ? [] : [el('p', { className: 'dt-empty', textContent: 'no rule matches this element' })]),
-      el('p', { className: 'dt-note', textContent: 'listed in sheet order, which is the cascade order — the last match for a property is the one that wins. specificity is not weighed in.' }),
-      ...(blocked ? [el('p', { className: 'dt-note', textContent: `${fmt.plural(blocked, 'stylesheet')} could not be read (cross-origin), so rules in them are not listed` })] : []),
+      found.length
+        ? el('ul', {}, ...found.slice(0, 40).map(({ rule, context, selector }) => el('li', {},
+            el('small', { textContent: context || sourceOf(rule) }),
+            el('code', { textContent: selector }),
+            el('pre', { textContent: declarations(rule) }),
+          )))
+        : el('em', { textContent: 'no rule matches this element' }),
+      el('small', { textContent: 'listed in sheet order, which is the cascade order — the last match for a property is the one that wins. specificity is not weighed in.' }),
+      ...(blocked ? [el('small', { textContent: `${fmt.plural(blocked, 'stylesheet')} could not be read (cross-origin), so rules in them are not listed` })] : []),
     ]));
 
     // the filter input is moved, not rebuilt, but replaceChildren still detaches
@@ -380,12 +375,9 @@ export function createDomPanel () {
 
 
 
-  function section (label, children) {
-    const $details = el('details', { className: 'dt-section', open: true },
-      el('summary', {}, el('span', { textContent: label })));
-    $details.append(el('div', { className: 'dt-body' }, ...children));
-    return $details;
-  }
+  const section = (label, children) => el('details', { open: true },
+    el('summary', {}, el('span', { textContent: label })),
+    el('div', {}, ...children));
 
   // ── selection
 
@@ -393,11 +385,11 @@ export function createDomPanel () {
     selected = element;
     globalThis.$0 = element; // the console helper, finally pointing at something
 
-    for (const $row of $tree.querySelectorAll('.is-selected')) $row.classList.remove('is-selected');
+    for (const $row of $tree.querySelectorAll('[aria-selected]')) $row.removeAttribute('aria-selected');
 
-    const $row = rows.get(element);
-    $row?.firstElementChild?.classList.add('is-selected');
-    if (scroll) $row?.firstElementChild?.scrollIntoView({ block: 'center' });
+    const $summary = rows.get(element)?.firstElementChild;
+    $summary?.setAttribute('aria-selected', 'true');
+    if (scroll) $summary?.scrollIntoView({ block: 'center' });
 
     highlight(element);
     renderDetail();
@@ -428,11 +420,11 @@ export function createDomPanel () {
     select(element, { scroll: true });
   }
 
-  const $pick = el('button', { type: 'button', className: 'dt-btn', textContent: 'pick', onClick: () => setPicking(!picking) });
+  const $pick = el('button', { type: 'button', textContent: 'pick', onClick: () => setPicking(!picking) });
 
   function setPicking (on) {
     picking = on;
-    $pick.classList.toggle('is-armed', on);
+    on ? $pick.dataset.armed = 'pick' : delete $pick.dataset.armed;
     $pick.textContent = on ? 'tap an element…' : 'pick';
     document.documentElement.classList.toggle('dt-picking', on);
 
@@ -456,15 +448,11 @@ export function createDomPanel () {
   });
 
   const $refresh = el('button', {
-    type: 'button', className: 'dt-btn', textContent: 'refresh',
+    type: 'button', textContent: 'refresh',
     onClick: () => { renderTree(); if (selected?.isConnected) { reveal(selected); select(selected, { scroll: true }); } },
   });
 
-  const $content = el('div', { className: 'dt-dom' },
-    el('div', { className: 'dt-filter' }, $pick, $find, $refresh),
-    $tree,
-    $detail,
-  );
+  const $content = [el('header', {}, $pick, $find, $refresh), $tree, $detail];
 
   renderTree();
   renderDetail();

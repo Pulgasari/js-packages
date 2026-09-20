@@ -39,8 +39,8 @@ const $menu     = createElement('menu');
 const panels    = {};
 
 for (const [key, { icon, create }] of Object.entries(registry)) {
-  const panel    = create?.() ?? { $content: createElement('i', { textContent: 'coming soon ...' }) };
-  const $section = createElement('section', { className: 'hidden', id: `devtools-${key}` }, panel.$content);
+  const panel    = create?.() ?? { $content: createElement('em', { textContent: 'coming soon ...' }) };
+  const $section = createElement('section', { hidden: true, id: `devtools-${key}` }, panel.$content);
 
   panels[key] = { ...panel, $section };
 
@@ -58,15 +58,15 @@ for (const [key, { icon, create }] of Object.entries(registry)) {
 /** one panel at a time: two open sections leave no room for the app on a phone */
 function toggle (key, force) {
   const panel = panels[key];
-  const open  = force ?? panel.$section.classList.contains('hidden');
+  const open  = force ?? panel.$section.hidden;
 
   for (const [other, candidate] of Object.entries(panels)) {
-    if (other === key || candidate.$section.classList.contains('hidden')) continue;
-    candidate.$section.classList.add('hidden');
+    if (other === key || candidate.$section.hidden) continue;
+    candidate.$section.hidden = true;
     candidate.onHide?.();
   }
 
-  panel.$section.classList.toggle('hidden', !open);
+  panel.$section.hidden = !open;
   open ? panel.onShow?.() : panel.onHide?.();
 }
 

@@ -1,11 +1,19 @@
 /* @pulgasari/devtools
 
-the panel chrome. adopted by boot.js through adoptStylesheet(), so it cascades
-after the host app's own author styles and needs no !important anywhere.
+adopted by boot.js through adoptStylesheet(), so it cascades after the host app's
+own author styles and needs no !important anywhere.
 
-everything is scoped to #devtools or prefixed dt-, so the sheet can be adopted
-into any page without colliding with it. the only exception is the body rule
-below, which has to reach outside to give the panel its own row. */
+almost everything is nested under #devtools, which is what lets the markup carry
+its own meaning: dl/dt/dd for key-value rows, ol/li for the log, menu for a
+button bar, header/nav/article/footer for the regions, small for a note, em for
+an empty state. a class only appears where the dom cannot say it — a state the
+browser has no attribute for, or a reusable component (.inspector) that renders
+in more than one panel.
+
+font-size and font-family are declared once on #devtools and inherited from
+there. no rule below sets either. */
+
+/* ── the three things that live outside #devtools ─────────────────────────── */
 
 body:has(#devtools) {
   height        : 100dvh;
@@ -16,15 +24,53 @@ body:has(#devtools) {
   #devtools { flex: 0; }
 }
 
-/* the cap sits on the whole panel, not on the open section: capping the section
-   alone lets the menu get pushed off screen by a long one, and the menu is the
-   only way back out of it */
+/* while picking, the page must not react to the tap that is doing the picking */
+:root.dt-picking, :root.dt-picking * {
+  cursor     : crosshair !important;
+  user-select: none !important;
+}
+
+/* the element highlight sits on <body>, so the panel's overflow cannot clip it.
+   pointer-events stay off: pick mode reads elementFromPoint(), and a highlight
+   that could be hit would return itself for every tap */
+#devtools-highlight {
+  position      : fixed;
+  inset         : 0;
+  z-index       : 2147483646;
+  pointer-events: none;
+  font-family   : var(--font-family-mono, ui-monospace, monospace);
+  font-size     : 11px;
+
+  > div {
+    position  : fixed;
+    background: color-mix(in oklch, transparent, #8be9fd 25%);
+    outline   : 1px solid #8be9fd;
+  }
+
+  > span {
+    position   : fixed;
+    padding    : 0.1em 0.4em;
+    background : #8be9fd;
+    color      : #000;
+    white-space: nowrap;
+  }
+}
+
+/* ── the panel ────────────────────────────────────────────────────────────── */
+
 #devtools {
   background     : color-mix(in oklch, var(--bg), black 20%);
   display        : flex;
   flex-flow      : column;
+  /* the cap sits on the whole panel, not on the open section: capping the section
+     alone lets a long one push the menu off screen, and the menu is the only way
+     back out of it */
   max-block-size : var(--dt-height, 60dvh);
+  font-family    : var(--font-family-mono, ui-monospace, monospace);
+  font-size      : var(--dt-font, 13px);
+  line-height    : 1.45;
 
+  /* the tab bar */
   > menu {
     display  : flex;
     gap      : 0.5rem;
@@ -36,618 +82,452 @@ body:has(#devtools) {
     flex     : none;
   }
 
-  > section {
-    border-bottom: 1px solid #fff2;
-    padding      : 0.5rem;
+  /* the open panel takes what is left and scrolls. shrink, never grow — a short
+     panel should stay short instead of stretching to the cap.
+
+     :not([hidden]) is load-bearing: a closed panel is hidden by the attribute
+     alone, and an unconditional `display` here would win over the ua stylesheet's
+     [hidden] { display: none } and show every panel at once */
+  > section:not([hidden]) {
+    flex                : 0 1 auto;
+    min-block-size      : 0;
+    overflow-y          : auto;
+    overscroll-behavior : contain;
+    display             : flex;
+    flex-flow           : column;
+    gap                 : 0.3em;
+    border-bottom       : 1px solid #fff2;
+    padding             : 0.5rem;
+
+    /* the section is the scroll container, so its regions keep their own height
+       rather than being squeezed by its cap. the console's log opts back in to
+       flexing below, because it is the one region that should take the slack */
+    > * { flex: none; }
   }
-}
-
-/* the open section takes what is left and scrolls. shrink, never grow — a short
-   panel should stay short instead of stretching to the cap */
-#devtools > section {
-  flex                  : 0 1 auto;
-  min-block-size        : 0;
-  overflow-y            : auto;
-  overscroll-behavior   : contain;
-  -webkit-overflow-scrolling: touch;
-}
-
-#devtools .hidden { display: none; }
-
-/* :::::: sections ::::::::::::::::::::::::::::::::::::::::::::: */
-
-.dt-section {
-  border-block-end: 1px solid #fff1;
-}
-
-.dt-section:last-of-type { border-block-end: 0; }
-
-.dt-section > summary {
-  display       : flex;
-  align-items   : center;
-  gap           : 0.5em;
-  padding       : 0.5em 0;
-  cursor        : pointer;
-  user-select   : none;
-  font-size     : 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color         : var(--mix-400, #999);
-}
-
-.dt-section > summary::-webkit-details-marker { display: none; }
-.dt-section > summary::marker                 { content: ''; }
-
-.dt-section > summary::before {
-  content   : '';
-  inline-size: 0.5em;
-  block-size : 0.5em;
-  border     : 1px solid currentColor;
-  border-width: 0 1px 1px 0;
-  rotate     : -45deg;
-  transition : rotate 150ms ease;
-}
-
-.dt-section[open] > summary::before { rotate: 45deg; }
-
-/* the count/summary chip a section carries on its header, e.g. "4 caches" */
-.dt-badge {
-  margin-inline-start: auto;
-  padding            : 0.1em 0.5em;
-  border-radius      : 1em;
-  background         : #fff1;
-  font-size          : 0.9em;
-  letter-spacing     : 0;
-  text-transform     : none;
-  font-variant-numeric: tabular-nums;
-}
-
-.dt-body {
-  padding-block-end: 0.75em;
-  display          : flex;
-  flex-flow        : column;
-  gap              : 0.35em;
-}
-
-/* :::::: rows ::::::::::::::::::::::::::::::::::::::::::::::::: */
-
-.dt-row {
-  display    : flex;
-  align-items: baseline;
-  gap        : 0.75em;
-  font-size  : 0.85rem;
-  line-height: 1.5;
-}
-
-.dt-key {
-  flex      : 0 0 auto;
-  min-inline-size: 8em;
-  color     : var(--mix-500, #888);
-}
-
-.dt-val {
-  flex       : 1;
-  text-align : end;
-  font-family: var(--font-family-mono, ui-monospace, monospace);
-  font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
-}
-
-/* a value the browser cannot answer — never styled like a real zero */
-.dt-val[data-state="missing"] { color: var(--mix-600, #666); font-style: italic; }
-.dt-val[data-state="good"]    { color: var(--success, #50fa7b); }
-.dt-val[data-state="warn"]    { color: var(--accent-2, #f1fa8c); }
-.dt-val[data-state="bad"]     { color: var(--accent, #ff5555); }
-
-.dt-note {
-  font-size : 0.75rem;
-  color     : var(--mix-600, #777);
-  line-height: 1.4;
-}
-
-.dt-empty {
-  font-size : 0.85rem;
-  color     : var(--mix-600, #777);
-  font-style: italic;
-}
-
-/* :::::: meters :::::::::::::::::::::::::::::::::::::::::::::::: */
-
-.dt-meter {
-  display  : flex;
-  flex-flow: column;
-  gap      : 0.2em;
-}
-
-.dt-meter aufbau-progress {
-  --progress-size: 0.4em;
-  background     : #fff1;
-  border-radius  : 1em;
-  overflow       : hidden;
-}
-
-.dt-meter .progress-bar { background: var(--accent, #ff79c6); }
-.dt-meter[data-state="warn"] .progress-bar { background: var(--accent-2, #f1fa8c); }
-.dt-meter[data-state="bad"]  .progress-bar { background: var(--accent,   #ff5555); }
-
-/* :::::: actions ::::::::::::::::::::::::::::::::::::::::::::::: */
-
-.dt-actions {
-  display  : flex;
-  flex-wrap: wrap;
-  gap      : 0.4em;
-  padding-block-start: 0.4em;
-}
-
-.dt-btn {
-  padding      : 0.35em 0.7em;
-  border       : 1px solid #fff2;
-  border-radius: 0.3em;
-  background   : #fff1;
-  color        : inherit;
-  font         : inherit;
-  font-size    : 0.8rem;
-  cursor       : pointer;
-  /* a destructive action needs a target big enough not to be hit by accident */
-  min-block-size: 2.2em;
-}
-
-.dt-btn:disabled { opacity: 0.4; cursor: default; }
-
-/* second tap confirms — see armAction() in panels/data.js */
-.dt-btn[data-armed] {
-  border-color: var(--accent, #ff5555);
-  color       : var(--accent, #ff5555);
-  background  : var(--accent-10, #fff2);
-}
-
-/* :::::: tables :::::::::::::::::::::::::::::::::::::::::::::::: */
-
-.dt-table {
-  inline-size    : 100%;
-  border-collapse: collapse;
-  font-size      : 0.75rem;
-  font-family    : var(--font-family-mono, ui-monospace, monospace);
-}
-
-.dt-table th {
-  position      : sticky;
-  inset-block-start: 0;
-  z-index       : 1;
-  padding       : 0.3em 0.4em;
-  background    : color-mix(in oklch, var(--bg), black 30%);
-  color         : var(--mix-500, #888);
-  text-align    : start;
-  white-space   : nowrap;
-  cursor        : pointer;
-  user-select   : none;
-  font-weight   : normal;
-}
-
-.dt-table th[aria-sort="ascending"]::after  { content: ' ▲'; }
-.dt-table th[aria-sort="descending"]::after { content: ' ▼'; }
-
-.dt-table td {
-  padding      : 0.3em 0.4em;
-  border-block-start: 1px solid #fff1;
-  vertical-align: top;
-}
-
-.dt-table td[data-numeric] { text-align: end; font-variant-numeric: tabular-nums; }
-
-.dt-table tbody tr:nth-child(even) { background: #fff1; }
-
-/* where a row came from, the one column worth colouring */
-.dt-source[data-source="sw"]      { color: var(--accent-3, #50fa7b); }
-.dt-source[data-source="cache"]   { color: var(--accent-2, #f1fa8c); }
-.dt-source[data-source="network"] { color: var(--mix-400, #999); }
-.dt-source[data-source="opaque"]  { color: var(--mix-600, #666); }
-
-/* :::::: filter bar :::::::::::::::::::::::::::::::::::::::::::: */
-
-.dt-filter {
-  display    : flex;
-  gap        : 0.4em;
-  align-items: center;
-  padding-block: 0.4em;
-}
-
-.dt-filter input {
-  flex         : 1;
-  min-inline-size: 0;
-  padding      : 0.35em 0.5em;
-  border       : 1px solid #fff2;
-  border-radius: 0.3em;
-  background   : #0003;
-  color        : inherit;
-  font         : inherit;
-  font-size    : 0.8rem;
-}
-
-/* :::::: css panel :::::::::::::::::::::::::::::::::::::::::::::: */
-
-#devtools-css aufbau-code {
-  font-size: 0.8rem;
-}
-
-#devtools-css aufbau-code pre {
-  max-block-size: 40dvh;
-  overflow-y    : auto;
-}
-
-/* :::::: settings panel ::::::::::::::::::::::::::::::::::::::: */
-
-.dt-set-row { align-items: center; }
-
-.dt-set-row .dt-val {
-  display        : flex;
-  align-items    : center;
-  justify-content: flex-end;
-  gap            : 0.5em;
-}
-
-.dt-set-range {
-  display    : flex;
-  align-items: center;
-  gap        : 0.5em;
-  inline-size: 100%;
-}
-
-.dt-set-range input[type="range"] { flex: 1; min-inline-size: 0; accent-color: var(--accent, #ff79c6); }
-
-.dt-set-out {
-  flex           : 0 0 auto;
-  min-inline-size: 5em;
-  text-align     : end;
-  font-variant-numeric: tabular-nums;
-}
-
-.dt-set-row select {
-  padding      : 0.3em 0.4em;
-  border       : 1px solid #fff2;
-  border-radius: 0.3em;
-  background   : #0003;
-  color        : inherit;
-  font         : inherit;
-  font-size    : 0.85rem;
-}
-
-.dt-set-row input[type="checkbox"] {
-  inline-size : 1.4em;
-  block-size  : 1.4em;
-  accent-color: var(--accent, #ff79c6);
-}
-
-/* :::::: console ::::::::::::::::::::::::::::::::::::::::::::::: */
-
-.dt-console {
-  display       : flex;
-  flex-flow     : column;
-  block-size    : 100%;
-  min-block-size: 0;
-  gap           : 0.3em;
-}
-
-.dt-levels {
-  display  : flex;
-  flex-wrap: wrap;
-  gap      : 0.3em;
-  flex     : none;
-}
-
-.dt-level {
-  display      : flex;
-  align-items  : center;
-  gap          : 0.35em;
-  padding      : 0.25em 0.5em;
-  border       : 1px solid #fff2;
-  border-radius: 0.3em;
-  background   : transparent;
-  color        : var(--mix-600, #777);
-  font         : inherit;
-  font-size    : 0.75rem;
-  cursor       : pointer;
-  /* an off toggle stays legible: it is a filter, not a disabled control */
-  opacity      : 0.5;
-}
-
-.dt-level.is-on { opacity: 1; color: inherit; background: #fff1; }
-
-.dt-level[data-level="error"].is-on { color: var(--accent,   #ff5555); border-color: currentColor; }
-.dt-level[data-level="warn"].is-on  { color: var(--accent-2, #f1fa8c); border-color: currentColor; }
-.dt-level[data-level="info"].is-on  { color: #8be9fd; border-color: currentColor; }
-
-.dt-level-count {
-  padding             : 0 0.35em;
-  border-radius       : 1em;
-  background          : #fff2;
-  font-variant-numeric: tabular-nums;
-}
-
-/* the one scroll container in the panel */
-.dt-log {
-  flex                : 1;
-  min-block-size      : 6em;
-  overflow-y          : auto;
-  overscroll-behavior : contain;
-  font-family         : var(--font-family-mono, ui-monospace, monospace);
-  font-size           : var(--dt-font, 13px);
-  line-height         : 1.45;
-}
-
-.dt-log-row {
-  display         : flex;
-  gap             : 0.5em;
-  padding         : 0.15em 0.3em;
-  border-block-start: 1px solid #fff1;
-}
-
-.dt-log-body  { flex: 1; min-inline-size: 0; }
-.dt-log-time  { color: var(--mix-600, #666); margin-inline-end: 0.5em; }
-.dt-log-caret { color: var(--mix-500, #888); margin-inline-end: 0.4em; }
-
-.dt-log-row.is-error  { background: color-mix(in oklch, transparent, var(--accent,   #ff5555) 12%); color: var(--accent,   #ff5555); }
-.dt-log-row.is-warn   { background: color-mix(in oklch, transparent, var(--accent-2, #f1fa8c) 10%); color: var(--accent-2, #f1fa8c); }
-.dt-log-row.is-debug  { color: var(--mix-500, #888); }
-.dt-log-row.is-input  { color: var(--mix-400, #999); }
-.dt-log-row.is-result { color: var(--accent-3, #50fa7b); }
-
-.dt-log-count:not(:empty) {
-  flex                : none;
-  align-self          : flex-start;
-  padding             : 0 0.4em;
-  border-radius       : 1em;
-  background          : #fff2;
-  font-size           : 0.75em;
-  font-variant-numeric: tabular-nums;
-}
-
-/* long urls and stack traces: wrap by default, one switch away from a scroll */
-.dt-log-body { overflow-wrap: anywhere; white-space: pre-wrap; }
-
-#devtools[data-wrap="off"] .dt-log-body {
-  white-space  : pre;
-  overflow-x   : auto;
-  overflow-wrap: normal;
-}
-
-/* :::::: inspector :::::::::::::::::::::::::::::::::::::::::::: */
-
-.dt-ins, .dt-ins-row { display: block; }
-
-.dt-ins > summary {
-  cursor     : pointer;
-  list-style : none;
-  display    : flex;
-  align-items: baseline;
-  gap        : 0.3em;
-  /* the row is a tap target on a phone, not a 10px triangle */
-  padding    : 0.1em 0;
-}
-
-.dt-ins > summary::-webkit-details-marker { display: none; }
-.dt-ins > summary::marker                 { content: ''; }
-
-.dt-ins > summary::before {
-  content     : '';
-  flex        : none;
-  inline-size : 0.4em;
-  block-size  : 0.4em;
-  border      : 1px solid currentColor;
-  border-width: 1px 1px 0 0;
-  rotate      : 45deg;
-  opacity     : 0.6;
-  transition  : rotate 120ms ease;
-}
-
-.dt-ins[open] > summary::before { rotate: 135deg; }
-
-.dt-ins-body {
-  margin-inline-start: 1em;
-  border-inline-start: 1px solid #fff2;
-  padding-inline-start: 0.5em;
-}
-
-.dt-ins-key { color: #8be9fd; }
-.dt-ins-key.is-hidden { opacity: 0.55; }
-.dt-ins-key.is-getter { font-style: italic; }
-.dt-ins-key.is-attr   { color: var(--accent-2, #f1fa8c); }
-
-.dt-ins-val.is-string   { color: var(--accent-3, #50fa7b); }
-.dt-ins-val.is-number,
-.dt-ins-val.is-bigint,
-.dt-ins-val.is-boolean  { color: #bd93f9; }
-.dt-ins-val.is-null,
-.dt-ins-val.is-undefined { color: var(--mix-600, #777); }
-.dt-ins-val.is-error    { color: var(--accent, #ff5555); }
-.dt-ins-val.is-node     { color: #8be9fd; }
-.dt-ins-val.is-circular { color: var(--mix-600, #777); font-style: italic; }
-
-.dt-ins-getter {
-  border       : 1px solid #fff2;
-  border-radius: 0.3em;
-  background   : #fff1;
-  color        : inherit;
-  font         : inherit;
-  font-size    : 0.85em;
-  cursor       : pointer;
-  padding      : 0 0.4em;
-}
-
-.dt-ins-empty { color: var(--mix-600, #777); font-style: italic; }
-
-/* :::::: eval input ::::::::::::::::::::::::::::::::::::::::::: */
-
-.dt-console-input {
-  display    : flex;
-  gap        : 0.4em;
-  align-items: flex-end;
-  flex       : none;
-  padding-block-start: 0.3em;
-  border-block-start : 1px solid #fff2;
-}
-
-.dt-input {
-  flex           : 1;
-  min-inline-size: 0;
-  resize         : none;
-  padding        : 0.4em 0.5em;
-  border         : 1px solid #fff2;
-  border-radius  : 0.3em;
-  background     : #0003;
-  color          : inherit;
-  font-family    : var(--font-family-mono, ui-monospace, monospace);
-  font-size      : var(--dt-font, 13px);
-  line-height    : 1.4;
-}
-
-.dt-run { flex: none; }
-
-/* :::::: dom panel :::::::::::::::::::::::::::::::::::::::::::: */
-
-.dt-dom { display: flex; flex-flow: column; gap: 0.3em; }
-
-.dt-dom .dt-filter input { flex: 1; }
-
-.dt-btn.is-armed {
-  border-color: var(--accent-3, #50fa7b);
-  color       : var(--accent-3, #50fa7b);
-  background  : color-mix(in oklch, transparent, var(--accent-3, #50fa7b) 15%);
-}
-
-/* while picking, the page must not react to the tap that is doing the picking */
-:root.dt-picking, :root.dt-picking * {
-  cursor      : crosshair !important;
-  user-select : none !important;
-}
-
-.dt-tree {
-  max-block-size     : 40dvh;
-  overflow           : auto;
-  overscroll-behavior: contain;
-  font-family        : var(--font-family-mono, ui-monospace, monospace);
-  font-size          : var(--dt-font, 13px);
-  line-height        : 1.5;
-  border             : 1px solid #fff1;
-  border-radius      : 0.3em;
-  padding            : 0.3em;
-}
-
-.dt-tree-node { display: block; }
-
-.dt-tree-node > summary,
-.dt-tree-row {
-  display    : flex;
-  align-items: center;
-  gap        : 0.3em;
-  list-style : none;
-  cursor     : pointer;
-  white-space: nowrap;
-  /* a tap target, not a 10px triangle */
-  padding    : 0.15em 0.2em;
-  border-radius: 0.2em;
-}
-
-.dt-tree-node > summary::-webkit-details-marker { display: none; }
-.dt-tree-node > summary::marker                 { content: ''; }
-
-.dt-tree-node > summary::before {
-  content     : '';
-  flex        : none;
-  inline-size : 0.4em;
-  block-size  : 0.4em;
-  border      : 1px solid currentColor;
-  border-width: 1px 1px 0 0;
-  rotate      : 45deg;
-  opacity     : 0.6;
-  transition  : rotate 120ms ease;
-}
-
-.dt-tree-node[open] > summary::before { rotate: 135deg; }
-.dt-tree-node.is-leaf > summary::before { opacity: 0; }
-
-.dt-tree-node > :not(summary) {
-  margin-inline-start : 0.9em;
-  border-inline-start : 1px solid #fff1;
-  padding-inline-start: 0.4em;
-}
-
-.dt-tree-tag { color: #8be9fd; }
-.dt-tree-row.is-text    { color: var(--fg, #f8f8f2); opacity: 0.8; cursor: default; }
-.dt-tree-row.is-comment { color: var(--mix-600, #777); font-style: italic; cursor: default; }
-.dt-tree-row.is-empty   { color: var(--mix-600, #777); font-style: italic; cursor: default; }
-
-.dt-tree-row.is-selected {
-  background: var(--accent-25, #fff2);
-  outline   : 1px solid var(--accent, #ff79c6);
-}
-
-/* ── detail view */
-
-.dt-detail-head {
-  display    : flex;
-  align-items: center;
-  gap        : 0.4em;
-  padding-block: 0.3em;
-}
-
-.dt-path {
-  flex         : 1;
-  min-inline-size: 0;
-  overflow-wrap: anywhere;
-  font-size    : 0.8rem;
-  color        : var(--accent-2, #f1fa8c);
-}
-
-.dt-rule {
-  border-block-start: 1px solid #fff1;
-  padding-block     : 0.3em;
-}
-
-.dt-rule-head {
-  display        : flex;
-  gap            : 0.5em;
-  justify-content: space-between;
-  align-items    : baseline;
-  font-size      : 0.8rem;
-}
-
-.dt-rule-head code { color: var(--accent-3, #50fa7b); overflow-wrap: anywhere; }
-.dt-rule-src       { flex: none; color: var(--mix-600, #777); font-size: 0.9em; }
-
-.dt-rule-body {
-  margin     : 0.2em 0 0;
-  font-size  : 0.75rem;
-  color      : var(--mix-300, #ccc);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-/* ── on-page highlight, appended to <body> so panel overflow cannot clip it */
-
-#devtools-highlight {
-  position      : fixed;
-  inset         : 0;
-  z-index       : 2147483646;
-  pointer-events: none;
-}
-
-#devtools-highlight.hidden { display: none; }
-
-.dt-hl-box {
-  position  : fixed;
-  background: color-mix(in oklch, transparent, #8be9fd 25%);
-  outline   : 1px solid #8be9fd;
-}
-
-.dt-hl-label {
-  position     : fixed;
-  padding      : 0.1em 0.4em;
-  border-radius: 0.2em;
-  background   : #8be9fd;
-  color        : #000;
-  font-family  : var(--font-family-mono, ui-monospace, monospace);
-  font-size    : 11px;
-  line-height  : 1.6;
-  white-space  : nowrap;
+
+  /* :::: rows ::::::::::::::::::::::::::::::::::::::::::::::::: */
+
+  dl {
+    display              : grid;
+    grid-template-columns: max-content 1fr;
+    align-items          : baseline;
+    column-gap           : 0.75em;
+    margin               : 0;
+  }
+
+  dt { color: var(--mix-500, #888); }
+
+  dd {
+    margin              : 0;
+    text-align          : end;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap       : anywhere;
+
+    /* a value the browser has no api for — never styled like a real zero */
+    &[data-state="missing"] { color: var(--mix-600, #666); font-style: italic; }
+    &[data-state="good"]    { color: var(--success, #50fa7b); }
+    &[data-state="warn"]    { color: var(--accent-2, #f1fa8c); }
+    &[data-state="bad"]     { color: var(--accent, #ff5555); }
+  }
+
+  small  { color: var(--mix-600, #777); }
+  em     { color: var(--mix-600, #777); }
+  output { min-inline-size: 5em; text-align: end; font-variant-numeric: tabular-nums; }
+
+  /* a dd is a value slot: whatever control sits in it lines up on the right */
+  dd:has(input, select) {
+    display        : flex;
+    align-items    : center;
+    justify-content: flex-end;
+    gap            : 0.5em;
+  }
+
+  /* :::: controls :::::::::::::::::::::::::::::::::::::::::::::: */
+
+  button {
+    padding       : 0.35em 0.7em;
+    border        : 1px solid #fff2;
+    background    : #fff1;
+    color         : inherit;
+    font          : inherit;
+    cursor        : pointer;
+    /* a destructive action needs a target big enough not to be hit by accident */
+    min-block-size: 2.2em;
+
+    &:disabled { opacity: 0.4; cursor: default; }
+
+    /* second tap confirms — see armAction() in panels/data.js */
+    &[data-armed] {
+      border-color: var(--accent, #ff5555);
+      color       : var(--accent, #ff5555);
+      background  : var(--accent-10, #fff2);
+    }
+
+    &[data-armed="pick"] {
+      border-color: var(--accent-3, #50fa7b);
+      color       : var(--accent-3, #50fa7b);
+      background  : color-mix(in oklch, transparent, var(--accent-3, #50fa7b) 15%);
+    }
+  }
+
+  input, select, textarea {
+    padding    : 0.35em 0.5em;
+    border     : 1px solid #fff2;
+    background : #0003;
+    color      : inherit;
+    font       : inherit;
+    min-inline-size: 0;
+  }
+
+  input[type="range"]    { flex: 1; padding: 0; accent-color: var(--accent, #ff79c6); }
+  input[type="checkbox"] { inline-size: 1.4em; block-size: 1.4em; accent-color: var(--accent, #ff79c6); }
+
+  /* a toolbar row: search field plus the buttons that act on it */
+  header {
+    display    : flex;
+    gap        : 0.4em;
+    align-items: center;
+    flex       : none;
+
+    input { flex: 1; }
+  }
+
+  /* :::: collapsible sections :::::::::::::::::::::::::::::::::: */
+
+  details {
+    border-block-end: 1px solid #fff1;
+
+    &:last-of-type { border-block-end: 0; }
+
+    > summary {
+      display       : flex;
+      align-items   : center;
+      gap           : 0.5em;
+      padding       : 0.5em 0;
+      cursor        : pointer;
+      user-select   : none;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color         : var(--mix-400, #999);
+      list-style    : none;
+
+      &::-webkit-details-marker { display: none; }
+      &::marker                 { content: ''; }
+
+      &::before {
+        content     : '';
+        flex        : none;
+        inline-size : 0.5em;
+        block-size  : 0.5em;
+        border      : 1px solid currentColor;
+        border-width: 0 1px 1px 0;
+        rotate      : -45deg;
+        transition  : rotate 150ms ease;
+      }
+
+      /* the count chip a section carries on its header, e.g. "4 caches" */
+      small {
+        margin-inline-start : auto;
+        padding             : 0.1em 0.5em;
+        background          : #fff1;
+        letter-spacing      : 0;
+        text-transform      : none;
+        font-variant-numeric: tabular-nums;
+      }
+    }
+
+    &[open] > summary::before { rotate: 45deg; }
+
+    > div {
+      padding-block-end: 0.75em;
+      display          : flex;
+      flex-flow        : column;
+      gap              : 0.35em;
+    }
+  }
+
+  /* :::: meters :::::::::::::::::::::::::::::::::::::::::::::::: */
+
+  aufbau-progress {
+    --progress-size: 0.4em;
+    background     : #fff1;
+    overflow       : hidden;
+
+    .progress-bar { background: var(--accent, #ff79c6); }
+  }
+
+  [data-state="warn"] aufbau-progress .progress-bar { background: var(--accent-2, #f1fa8c); }
+  [data-state="bad"]  aufbau-progress .progress-bar { background: var(--accent,   #ff5555); }
+
+  /* :::: tables ::::::::::::::::::::::::::::::::::::::::::::::::: */
+
+  table {
+    inline-size    : 100%;
+    border-collapse: collapse;
+
+    th {
+      position         : sticky;
+      inset-block-start: 0;
+      z-index          : 1;
+      padding          : 0.3em 0.4em;
+      background       : color-mix(in oklch, var(--bg), black 30%);
+      color            : var(--mix-500, #888);
+      text-align       : start;
+      white-space      : nowrap;
+      cursor           : pointer;
+      user-select      : none;
+      font-weight      : normal;
+
+      &[aria-sort="ascending"]::after  { content: ' ▲'; }
+      &[aria-sort="descending"]::after { content: ' ▼'; }
+    }
+
+    td {
+      padding           : 0.3em 0.4em;
+      border-block-start: 1px solid #fff1;
+      vertical-align    : top;
+
+      &[data-numeric] { text-align: end; font-variant-numeric: tabular-nums; }
+    }
+
+    tbody tr:nth-child(even) { background: #fff1; }
+
+    /* where a response came from, the one column worth colouring */
+    td[data-source="sw"]      { color: var(--accent-3, #50fa7b); }
+    td[data-source="cache"]   { color: var(--accent-2, #f1fa8c); }
+    td[data-source="network"] { color: var(--mix-400, #999); }
+    td[data-source="opaque"]  { color: var(--mix-600, #666); }
+  }
+
+  /* :::: the value inspector :::::::::::::::::::::::::::::::::::
+     a component, not a panel: it renders inside console rows and inside the
+     element panel's attribute list, so it carries one class of its own */
+
+  .inspector {
+    display: block;
+
+    details > summary {
+      /* the section chrome above does not apply here */
+      padding       : 0.1em 0;
+      text-transform: none;
+      letter-spacing: normal;
+      color         : inherit;
+      align-items   : baseline;
+
+      &::before { border-width: 1px 1px 0 0; rotate: 45deg; opacity: 0.6; block-size: 0.4em; inline-size: 0.4em; }
+    }
+
+    details[open] > summary::before { rotate: 135deg; }
+
+    details {
+      border-block-end: 0;
+
+      > div {
+        margin-inline-start : 1em;
+        border-inline-start : 1px solid #fff2;
+        padding-inline-start: 0.5em;
+        padding-block-end   : 0;
+        gap                 : 0;
+      }
+    }
+
+    .key {
+      color: #8be9fd;
+
+      &[data-kind="hidden"] { opacity: 0.55; }
+      &[data-kind="getter"] { font-style: italic; }
+      &[data-kind="attr"]   { color: var(--accent-2, #f1fa8c); }
+    }
+
+    .value {
+      &.is-string   { color: var(--accent-3, #50fa7b); }
+      &.is-number,
+      &.is-bigint,
+      &.is-boolean  { color: #bd93f9; }
+      &.is-null,
+      &.is-undefined,
+      &.is-circular { color: var(--mix-600, #777); }
+      &.is-circular { font-style: italic; }
+      &.is-error    { color: var(--accent, #ff5555); }
+      &.is-node     { color: #8be9fd; }
+    }
+
+    button { padding: 0 0.4em; min-block-size: 0; }
+  }
+
+  /* :::: console :::::::::::::::::::::::::::::::::::::::::::::::: */
+
+  > section#devtools-console {
+    /* the level filters */
+    > menu {
+      display  : flex;
+      flex-wrap: wrap;
+      gap      : 0.3em;
+      margin   : 0;
+      padding  : 0;
+
+      button {
+        display       : flex;
+        align-items   : center;
+        gap            : 0.35em;
+        padding       : 0.25em 0.5em;
+        min-block-size: 0;
+        background    : transparent;
+        color         : var(--mix-600, #777);
+        /* an off filter stays legible: it is a switch, not a disabled control */
+        opacity       : 0.5;
+
+        small { padding: 0 0.35em; background: #fff2; color: inherit; font-variant-numeric: tabular-nums; }
+
+        &[aria-pressed="true"] { opacity: 1; color: inherit; background: #fff1; }
+        &[aria-pressed="true"][data-level="error"] { color: var(--accent,   #ff5555); border-color: currentColor; }
+        &[aria-pressed="true"][data-level="warn"]  { color: var(--accent-2, #f1fa8c); border-color: currentColor; }
+        &[aria-pressed="true"][data-level="info"]  { color: #8be9fd; border-color: currentColor; }
+      }
+    }
+
+    /* the log, and the one scroll container inside the panel */
+    > ol {
+      flex               : 1;
+      min-block-size     : 6em;
+      overflow-y         : auto;
+      overscroll-behavior: contain;
+      margin             : 0;
+      padding            : 0;
+      list-style         : none;
+
+      > li {
+        display           : flex;
+        gap               : 0.5em;
+        padding           : 0.15em 0.3em;
+        border-block-start: 1px solid #fff1;
+
+        > div { flex: 1; min-inline-size: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+
+        /* the count badge on a collapsed repeat */
+        > small:not(:empty) {
+          flex                : none;
+          align-self          : flex-start;
+          padding             : 0 0.4em;
+          background          : #fff2;
+          font-variant-numeric: tabular-nums;
+        }
+
+        time { color: var(--mix-600, #666); margin-inline-end: 0.5em; }
+
+        &[data-level="error"]  { background: color-mix(in oklch, transparent, var(--accent,   #ff5555) 12%); color: var(--accent,   #ff5555); }
+        &[data-level="warn"]   { background: color-mix(in oklch, transparent, var(--accent-2, #f1fa8c) 10%); color: var(--accent-2, #f1fa8c); }
+        &[data-level="debug"]  { color: var(--mix-500, #888); }
+        &[data-level="input"]  { color: var(--mix-400, #999); }
+        &[data-level="result"] { color: var(--accent-3, #50fa7b); }
+
+        /* the eval echo and its answer are marked by the list, not by a node */
+        &[data-level="input"]  > div::before { content: '› '; }
+        &[data-level="result"] > div::before { content: '‹ '; }
+      }
+    }
+
+    > footer {
+      display     : flex;
+      gap         : 0.4em;
+      align-items : flex-end;
+      flex        : none;
+      padding-block-start: 0.3em;
+      border-block-start : 1px solid #fff2;
+
+      textarea { flex: 1; resize: none; }
+    }
+  }
+
+  /* long urls and stack traces: wrap by default, one setting away from a scroll */
+  &[data-wrap="off"] > section#devtools-console > ol > li > div {
+    white-space  : pre;
+    overflow-x   : auto;
+    overflow-wrap: normal;
+  }
+
+  /* :::: elements ::::::::::::::::::::::::::::::::::::::::::::::: */
+
+  > section#devtools-dom {
+    /* the tree */
+    > nav {
+      max-block-size     : 40dvh;
+      overflow           : auto;
+      overscroll-behavior: contain;
+      border             : 1px solid #fff1;
+      padding            : 0.3em;
+
+      details, div { display: block; }
+
+      details {
+        border-block-end: 0;
+
+        > summary, ~ div { white-space: nowrap; }
+
+        > summary {
+          padding       : 0.15em 0.2em;
+          text-transform: none;
+          letter-spacing: normal;
+          color         : #8be9fd;
+
+          &::before { border-width: 1px 1px 0 0; rotate: 45deg; opacity: 0.6; block-size: 0.4em; inline-size: 0.4em; }
+          &[aria-selected="true"] { background: var(--accent-25, #fff2); outline: 1px solid var(--accent, #ff79c6); }
+        }
+
+        &[open] > summary::before { rotate: 135deg; }
+        &[data-leaf] > summary::before { opacity: 0; }
+
+        > :not(summary) {
+          margin-inline-start : 0.9em;
+          border-inline-start : 1px solid #fff1;
+          padding-inline-start: 0.4em;
+        }
+      }
+
+      div[data-node] {
+        padding    : 0.15em 0.2em;
+        white-space: nowrap;
+        color      : var(--mix-600, #777);
+        font-style : italic;
+      }
+
+      div[data-node="text"] { color: var(--fg, #f8f8f2); opacity: 0.8; font-style: normal; }
+    }
+
+    /* the detail view for whatever is selected */
+    > article > header code {
+      flex         : 1;
+      overflow-wrap: anywhere;
+      color        : var(--accent-2, #f1fa8c);
+    }
+
+    /* matched rules */
+    ul {
+      margin    : 0;
+      padding   : 0;
+      list-style: none;
+
+      > li {
+        border-block-start: 1px solid #fff1;
+        padding-block     : 0.3em;
+
+        code  { color: var(--accent-3, #50fa7b); overflow-wrap: anywhere; }
+        small { float: inline-end; margin-inline-start: 0.5em; }
+
+        pre {
+          margin       : 0.2em 0 0;
+          color        : var(--mix-300, #ccc);
+          white-space  : pre-wrap;
+          overflow-wrap: anywhere;
+        }
+      }
+    }
+  }
+
+  /* :::: live css ::::::::::::::::::::::::::::::::::::::::::::::: */
+
+  > section#devtools-css aufbau-code pre {
+    max-block-size: 40dvh;
+    overflow-y    : auto;
+  }
 }
