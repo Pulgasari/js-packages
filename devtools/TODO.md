@@ -15,3 +15,8 @@
   - [x] opacity zu 100%
   - [x] rechts erscheinen icons: copy, delete, und wo passend: re-run
   - [x] links vor jedem eintrag und im filter (info, warn usw) jeweils noch n pasendes icon zur besseren repräsentation
+
+## ui generell
+
+- [ ] aktuell ist es etwas nervig, dass wenn man panel wechselt, die höhe immer anders ist, das sollte immer gleich hoch sein. ausserdem wäre es nice wenn oben am panel ein kleines handle wäre, dass man gedrückt halten und dann nach oben/unten verschieben kann. dieser wert sollte dann auh der wert aus den settings options bzgl der höhe sein. sinnvoll wäre hier vermutlich auf min. 10dvh bis max 60dvh zu begrenzen
+- [ ] wenn die panel-position auf `top` eingestellt ist, ist das menu unter dem panel. hier müsste vermutlich am umgebenden container `column-reverse` statt `column` greifen, wenn `top` gesetzt ist.
