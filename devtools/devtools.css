@@ -21,7 +21,9 @@ body:has(#devtools) {
   flex-direction: column;
 
   #app      { flex: 1; height: unset; }
-  #devtools { flex: 0; }
+  /* flex: none, not flex: 0 — the latter sets flex-basis: 0%, which in a column
+     container replaces block-size and would make the panel's own height moot */
+  #devtools { flex: none; }
 }
 
 body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
@@ -76,9 +78,38 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
   background     : color-mix(in oklch, var(--bg), black 20%);
   display        : flex;
   flex-flow      : column;
-  max-block-size : var(--dt-height, 60dvh);
+  /* a fixed height, not a cap: a panel that resizes itself every time you switch
+     tabs moves the thing you were about to tap */
+  block-size     : var(--dt-height, 40dvh);
   font-size      : var(--dt-font, 13px);
   line-height    : 1.45;
+
+  /* at the top of the viewport the menu belongs against the screen edge and the
+     handle against the page, which is exactly what reversing the column does —
+     the handle is the first child, so it lands on whichever end faces the app */
+  &[data-position="top"] { flex-flow: column-reverse; }
+
+  /* the drag handle. touch-action is what stops the browser from scrolling the
+     page instead of letting the pointer events through */
+  > div:first-child {
+    flex           : none;
+    block-size     : 1.1rem;
+    display        : grid;
+    place-items    : center;
+    cursor         : ns-resize;
+    touch-action   : none;
+    user-select    : none;
+
+    &::before {
+      content     : '';
+      inline-size : 2.5rem;
+      block-size  : 0.25rem;
+      background  : var(--mix-600, #777);
+      border-radius: 1rem;
+    }
+
+    &:active::before { background: var(--accent, #ff79c6); }
+  }
 
   > menu {
     display        : flex;
@@ -104,7 +135,9 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
      alone, and an unconditional `display` here would win over the ua stylesheet's
      [hidden] { display: none } and show every panel at once */
   > section:not([hidden]) {
-    flex                : 0 1 auto;
+    /* the panel's height is fixed now, so the open section takes the slack and
+       scrolls rather than sizing itself to its content */
+    flex                : 1;
     min-block-size      : 0;
     overflow-y          : auto;
     overscroll-behavior : contain;

@@ -9,7 +9,7 @@
 // change if that trade ever stops being worth it.
 
 import createElement from '@domina/methods/createElement.js';
-import settings, { SECTIONS } from '../settings.js';
+import settings, { SECTIONS, SPEC } from '../settings.js';
 
 const el = createElement;
 
@@ -73,9 +73,26 @@ export function createSettingsPanel () {
 
   build();
 
-  // a reset rewrites every value at once, so the panel is rebuilt rather than
-  // each control trying to reconcile itself
-  settings.subscribe((key) => { if (key === null) build(); });
+  const readout = (key, value) => `${value}${SPEC[key].unit ? ` ${SPEC[key].unit}` : ''}`;
+
+  /*
+  a reset rewrites every value at once, so the panel is rebuilt. a single change
+  syncs that one control instead — it can come from somewhere else entirely, and
+  the resize handle does exactly that: without this the height slider would still
+  read whatever it was built with after a drag.
+  */
+  settings.subscribe((key, value) => {
+    if (key === null) return build();
+
+    const $control = $body.querySelector(`[name="${key}"]`);
+    if (!$control) return;
+
+    if ($control.type === 'checkbox') $control.checked = value;
+    else $control.value = value;
+
+    const $out = $control.parentElement?.querySelector('output');
+    if ($out) $out.textContent = readout(key, value);
+  });
 
   return { $content: $body };
 }
