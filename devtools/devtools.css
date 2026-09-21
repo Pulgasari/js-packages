@@ -69,8 +69,12 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
 /* ── the panel ────────────────────────────────────────────────────────────── */
 
 /* same reason as above: inheriting from #devtools is not enough against a
-   universal rule in the host page, so every descendant is named */
+   universal rule in the host page, so every descendant is named. box-sizing is
+   not an inherited property at all, so it has to be stated here either way —
+   without it --dt-height means the panel's content and the padding and border
+   land on top, so 40dvh renders as 42 */
 #devtools, #devtools * {
+  box-sizing : border-box;
   font-family: var(--font-code, var(--font-family-mono, ui-monospace, monospace));
 }
 
@@ -78,9 +82,8 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
   background     : color-mix(in oklch, var(--bg), black 20%);
   display        : flex;
   flex-flow      : column;
-  /* a fixed height, not a cap: a panel that resizes itself every time you switch
-     tabs moves the thing you were about to tap */
-  block-size     : var(--dt-height, 40dvh);
+  /* no height here: the aside is the menu plus whatever panel is open, and a
+     height on it would stretch the menu to fill it when nothing is */
   font-size      : var(--dt-font, 13px);
   line-height    : 1.45;
 
@@ -89,8 +92,15 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
      the handle is the first child, so it lands on whichever end faces the app */
   &[data-position="top"] { flex-flow: column-reverse; }
 
-  /* the drag handle. touch-action is what stops the browser from scrolling the
-     page instead of letting the pointer events through */
+  /* the drag handle. it belongs to the open panel, so with none open there is
+     nothing to resize and nothing to show. it stays a child of the aside rather
+     than moving into the section: the section scrolls, and a grip that scrolls
+     away with the content is not a grip.
+
+     touch-action is what stops the browser from scrolling the page instead of
+     letting the pointer events through */
+  &:not(:has(> section:not([hidden]))) > div:first-child { display: none; }
+
   > div:first-child {
     flex           : none;
     block-size     : 1.1rem;
@@ -135,9 +145,11 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
      alone, and an unconditional `display` here would win over the ua stylesheet's
      [hidden] { display: none } and show every panel at once */
   > section:not([hidden]) {
-    /* the panel's height is fixed now, so the open section takes the slack and
-       scrolls rather than sizing itself to its content */
-    flex                : 1;
+    /* the height lives here, on the panel itself: a fixed one, not a cap, so the
+       panel does not resize every time you switch tabs and move the thing you
+       were about to tap */
+    flex                : none;
+    block-size          : var(--dt-height, 40dvh);
     min-block-size      : 0;
     overflow-y          : auto;
     overscroll-behavior : contain;

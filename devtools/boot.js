@@ -45,8 +45,9 @@ const $devtools = createElement('aside', { id: 'devtools' });
 // :::::: RESIZE HANDLE :::::::::::::::::::::::::::::::::::::::::
 
 /*
-the handle is the panel's first child, which puts it on whichever end faces the
+the handle is the aside's first child, which puts it on whichever end faces the
 app: last in a normal column, first in the reversed one the top position uses.
+css hides it while no panel is open, since there is then nothing to resize.
 
 dragging writes --dt-height straight onto the element for the duration and only
 commits to the settings on release — a store write per pointermove would persist
@@ -59,8 +60,11 @@ const $handle = createElement('div', {
   role          : 'separator',
   'aria-label'  : 'panel height',
   onPointerDown : (event) => {
+    const $open = $devtools.querySelector('section:not([hidden])');
+    if (!$open) return; // nothing to resize
+
     const startY = event.clientY;
-    const startH = $devtools.getBoundingClientRect().height / innerHeight * 100;
+    const startH = $open.getBoundingClientRect().height / innerHeight * 100;
     let   height = settings.get('panelHeight');
 
     $handle.setPointerCapture(event.pointerId);
