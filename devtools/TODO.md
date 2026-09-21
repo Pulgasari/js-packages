@@ -19,3 +19,4 @@
 ## ui generell
 
 - [ ] aktuell ist es etwas nervig, dass wenn man panel wechselt, die höhe immer anders ist, das sollte immer gleich hoch sein. ausserdem wäre es nice wenn oben am panel ein kleines handle wäre, dass man gedrückt halten und dann nach oben/unten verschieben kann. dieser wert sollte dann auh der wert aus den settings options bzgl der höhe sein. sinnvoll wäre hier vermutlich auf min. 10dvh bis max 60dvh zu begrenzen
+- [ ] wenn die panel-position auf `top` eingestellt ist, ist das menu unter dem panel. hier müsste vermutlich am umgebenden container `column-reverse` statt `column` greifen, wenn `top` gesetzt ist.
