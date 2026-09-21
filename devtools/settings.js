@@ -14,7 +14,7 @@ const CODE_THEMES = ['dracula', 'github-dark', 'nord', 'monokai', 'atom-one-dark
 export const SPEC = {
   // ui/general
   position    : { section: 'ui', type: 'enum',    label: 'panel position',  values: ['bottom', 'top'], default: 'bottom' },
-  panelHeight : { section: 'ui', type: 'integer', label: 'panel height',    min: 25, max: 85, step: 5, unit: 'dvh', default: 60 },
+  panelHeight : { section: 'ui', type: 'integer', label: 'panel height',    min: 10, max: 60, step: 1, unit: 'dvh', default: 40 },
   fontSize    : { section: 'ui', type: 'integer', label: 'font size',       min: 10, max: 20, step: 1, unit: 'px',  default: 13 },
 
   // console

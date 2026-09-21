@@ -7,7 +7,7 @@ import adoptStylesheet from '@domina/methods/adoptStylesheet.js';
 import createElement   from '@domina/methods/createElement.js';
 import htx             from '@pulgasari/htx/adapters/vanilla.js';
 
-import settings                from './settings.js';
+import settings, { SPEC }      from './settings.js';
 import { createConsolePanel }  from './panels/console.js';
 import { createCssPanel }      from './panels/css.js';
 import { createDataPanel }     from './panels/data.js';
@@ -41,6 +41,53 @@ const registry = {
 //const $tab      = htx`<$icon 'mdi:console-line' title='console' />`;
 
 const $devtools = createElement('aside', { id: 'devtools' });
+
+// :::::: RESIZE HANDLE :::::::::::::::::::::::::::::::::::::::::
+
+/*
+the handle is the panel's first child, which puts it on whichever end faces the
+app: last in a normal column, first in the reversed one the top position uses.
+
+dragging writes --dt-height straight onto the element for the duration and only
+commits to the settings on release — a store write per pointermove would persist
+to localStorage sixty times a second for one gesture.
+*/
+const HEIGHT = SPEC.panelHeight;
+
+const $handle = createElement('div', {
+  title         : 'drag to resize',
+  role          : 'separator',
+  'aria-label'  : 'panel height',
+  onPointerDown : (event) => {
+    const startY = event.clientY;
+    const startH = $devtools.getBoundingClientRect().height / innerHeight * 100;
+    let   height = settings.get('panelHeight');
+
+    $handle.setPointerCapture(event.pointerId);
+
+    const onMove = (move) => {
+      // at the bottom of the viewport the panel grows upwards, at the top it
+      // grows downwards, so the sign follows the position
+      const delta = ($devtools.dataset.position === 'top' ? 1 : -1) * (move.clientY - startY);
+
+      height = Math.min(HEIGHT.max, Math.max(HEIGHT.min, Math.round((startH + delta / innerHeight * 100) / HEIGHT.step) * HEIGHT.step));
+      $devtools.style.setProperty('--dt-height', `${height}dvh`);
+    };
+
+    const onUp = () => {
+      $handle.removeEventListener('pointermove', onMove);
+      $handle.removeEventListener('pointerup', onUp);
+      $handle.removeEventListener('pointercancel', onUp);
+      settings.set('panelHeight', height);
+    };
+
+    $handle.addEventListener('pointermove', onMove);
+    $handle.addEventListener('pointerup', onUp);
+    $handle.addEventListener('pointercancel', onUp);
+  },
+});
+
+$devtools.append($handle);
 
 // two groups, so the menu can push one to each edge: the panel tabs, and the
 // actions that are not panels at all
