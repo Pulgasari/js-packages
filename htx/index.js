@@ -546,6 +546,26 @@ function createHtml (h, Fragment, { memo = true, tags } = {}) {
 
   html.tags = registry;
 
+  /**
+   * attaches a helper to the tag function, so a template can reach it the same
+   * way it reaches html itself — use({ md }) then html.md(text). the point is
+   * that nothing in the core has to know what md is, or import it.
+   *
+   * use('md', fn) or use({ md: fn, … })
+   */
+  html.use = (name, fn) => {
+    const helpers = isString(name) ? { [name]: fn } : name;
+
+    // a helper named after the api would replace it, and the failure would
+    // show up far from the call that caused it
+    for (const key of Object.keys(helpers)) {
+      if (key === 'define' || key === 'tags' || key === 'use') throw new Error(`[htx] '${key}' is part of the html api and cannot be a helper`);
+    }
+
+    Object.assign(html, helpers);
+    return html;
+  };
+
   if (tags) html.define(tags);
 
   return html;

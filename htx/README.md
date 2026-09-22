@@ -200,6 +200,65 @@ and returns the identical node on every later call, which is correct for an
 immutable vnode and wrong for a DOM node — appending it a second time would move
 it out of the first tree instead of building a second one.
 
+## Markdown
+
+`markdown.js` walks a token tree into `h()` calls, so Markdown arrives as nodes
+rather than as an HTML string — which means `!html` is not needed for it, and
+raw HTML inside the Markdown never has to be parsed.
+
+The parser is **injected, not imported**. htx has no dependency on it, and
+nothing Markdown-related enters the module graph until you import this file:
+
+```javascript
+const { marked }         = await import('marked');
+const { createMarkdown } = await import('@pulgasari/htx/markdown.js');
+
+html.use({ md: createMarkdown(h, Fragment, { lexer: marked.lexer }) });
+
+html`<article.prose>${html.md(text)}</article>`
+```
+
+That is the whole lazy story — your `import()`, your moment. A template call is
+synchronous, so the parser has to be there before the first `html.md(…)`; there
+is no way around one `await` somewhere at startup.
+
+`html.use('md', fn)` or `html.use({ md, … })` attaches a helper to the tag
+function and returns it, so it chains. Names belonging to the API (`define`,
+`tags`, `use`) are refused rather than silently replaced.
+
+### Options
+
+| | |
+|---|---|
+| `lexer` | `src => tokens`. Required. |
+| `html` | raw HTML inside the Markdown: `'skip'` (default) drops it, `'text'` shows it as text, `'raw'` parses it through `!html` |
+| `breaks` | mirror the lexer's own `breaks`: a newline inside a paragraph becomes a `<br>` |
+| `handlers` | `{ [tokenType]: (token, walk) => node }`, for marked extensions |
+
+Safe by default: `'skip'` means an `<img onerror=…>` written into the Markdown
+is dropped instead of parsed. Only `'raw'` is the dangerous one, and it says so.
+
+**One marked trap:** pass `marked.lexer` bare. Unlike `marked.parse`, the
+standalone lexer *replaces* marked's defaults with whatever options object it
+gets, so `marked.lexer(src, {})` quietly turns GFM off — no tables, no task
+lists, no `~~del~~`. Spread `marked.defaults` if you need to pass options.
+
+### Fidelity
+
+Checked against `marked.parse()` as an oracle, 36 assertions, with two
+deliberate deviations:
+
+- Table alignment becomes `style="text-align:…"` rather than the obsolete
+  `align` attribute.
+- `- [x]` sets the checkbox's `checked` **property** (via domina), so the box is
+  really checked but the attribute does not appear in `outerHTML`.
+
+Everything else — entities, escapes, autolinks, loose and tight lists, nested
+blockquotes, code fences, hard breaks, link definitions — renders identically.
+Note that the lexer hands back *source* text, so `&amp;` written in the
+Markdown is decoded here rather than escaped; that is the one thing a node
+builder has to do in the opposite direction from a string renderer.
+
 ## Writing an adapter
 
 ```javascript
