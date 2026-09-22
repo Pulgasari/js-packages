@@ -21,6 +21,7 @@ modified fork of htm (developit/htm). changes vs upstream:
 - empty tag (<>...</>) falls back to Fragment
 - class accepts string | array | object
 - style accepts object
+- a prop group — [id, title]='x' — writes one value to several names
 */
 
 // :::::: IMPORTS
@@ -81,8 +82,14 @@ function appendProp (props, key, value) {
 
   if (!list) { props[key] += value + ''; return; }
 
-  const last = list[list.length - 1];
-  last[1] = (last[1] == null ? '' : last[1]) + value;
+  // the entry this append belongs to is the last one written under the same
+  // key, not simply the last one: a prop group interleaves its siblings, so
+  // class,className="a${x}" writes both before either appends
+  let i = list.length - 1;
+  while (i > 0 && list[i][0] !== key) i--;
+
+  const entry = list[i];
+  entry[1] = (entry[1] == null ? '' : entry[1]) + value;
 }
 
 function finalize (props) {
@@ -170,17 +177,50 @@ function evaluate (h, built, fields, args, memo = true) {
   return args;
 }
 
+// :::::: PROP GROUPS
+
+/*
+a prop group writes one value to several names:
+
+  <$box [id, title]='example' />   ->  id='example' title='example'
+  <$box id,title='example' />
+  <$box id|title='example' />
+
+either separator works in either spelling, and a group of one ([id]='x') is
+just that prop. whitespace is allowed inside the brackets only, because
+outside them a space is what ends an attribute.
+
+the split happens here, at build time, so a group costs one op per name in the
+cached program and nothing at all on render.
+*/
+
+const SEPARATOR = /[,|]/;
+
+function splitProp (name) {
+  const bracketed = name[0] === '[';
+
+  if (!bracketed && !SEPARATOR.test(name)) return [name];
+  if (bracketed && name[name.length - 1] !== ']') throw new Error(`[htx] unclosed prop group '${name}'`);
+
+  const names = (bracketed ? name.slice(1, -1) : name).split(SEPARATOR);
+
+  // an empty name means a dangling separator ('id,' — a space where the
+  // unbracketed forms do not allow one) or an empty group. both are typos
+  if (names.some(part => !part)) throw new Error(`[htx] malformed prop group '${name}'`);
+
+  return names;
+}
+
 // :::::: BUILD
 
 function build (statics) {
-  let char, propName;
+  let char, names;
   let mode    = MODE_TEXT;
   let buffer  = '';
   let current = [0];
   let quote   = '';
   let quoted  = false;
-  
-  
+  let group   = false;
 
   const commit = field => {
     if (mode === MODE_TEXT && (field || (buffer = buffer.replace(/^\s*\n\s*|\s*\n\s*$/g, '')))) {
@@ -201,22 +241,25 @@ function build (statics) {
     else if (mode === MODE_WHITESPACE && buffer && !field) {
       // the quote is the whole distinction: 'bx:search' is a positional value,
       // a bare word is a boolean attribute (<a disabled>)
-      quoted ? current.push(PROP_SET, 0, buffer, POSITIONAL)
-             : current.push(PROP_SET, 0, true,   buffer);
+      if (quoted) current.push(PROP_SET, 0, buffer, POSITIONAL);
+      else for (const name of splitProp(buffer)) current.push(PROP_SET, 0, true, name);
     }
     else if (mode >= MODE_PROP_SET) {
+      // one op per name in the group, so every name gets the same value and
+      // then the same appends
       if (buffer || (!field && mode === MODE_PROP_SET)) {
-        current.push(mode, 0, buffer, propName);
+        for (const name of names) current.push(mode, 0, buffer, name);
         mode = MODE_PROP_APPEND;
       }
       if (field) {
-        current.push(mode, field, 0, propName);
+        for (const name of names) current.push(mode, field, 0, name);
         mode = MODE_PROP_APPEND;
       }
     }
 
     buffer = '';
     quoted = false;
+    group  = false;
   };
 
   for (let i = 0; i < statics.length; i++) {
@@ -257,9 +300,10 @@ function build (statics) {
       }
       else if (!mode) {} // ignore everything until the tag ends
       else if (char === '=') {
-        mode = MODE_PROP_SET;
-        propName = buffer;
+        mode   = MODE_PROP_SET;
+        names  = splitProp(buffer);
         buffer = '';
+        group  = false;
       }
       else if (char === '/' && (mode < MODE_PROP_SET || statics[i][j + 1] === '>')) {
         commit();
@@ -268,10 +312,19 @@ function build (statics) {
         (current = current[0]).push(CHILD_RECURSE, 0, mode);
         mode = MODE_SLASH;
       }
+      // a bracketed prop group — [id, title]='x' — is a single token although
+      // it may hold whitespace, so the brackets suspend the space boundary
+      else if (char === '[' && mode === MODE_WHITESPACE && !buffer) {
+        group  = true;
+        buffer = char;
+      }
+      else if (char === ']' && group) {
+        group   = false;
+        buffer += char;
+      }
       else if (char === ' ' || char === '\t' || char === '\n' || char === '\r') {
         // <a disabled>
-        commit();
-        mode = MODE_WHITESPACE;
+        if (!group) { commit(); mode = MODE_WHITESPACE; }
       }
       else buffer += char;
 

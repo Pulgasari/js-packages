@@ -23,6 +23,42 @@ html`<div class="a" class=${['b','c']} class=${{ d: true, e: false }} />`
 `class` takes a string, an array or an object; `style` takes an object. An empty
 tag `<>…</>` falls back to `Fragment`.
 
+## Prop groups
+
+One value, several names. All three spellings do the same thing:
+
+```javascript
+html`<${Box} [id, title]='example' />`
+html`<${Box} id,title='example' />`
+html`<${Box} id|title='example' />`
+// -> <Box id='example' title='example' />
+```
+
+Either separator works in either spelling — `[a|b]` and `a,b` are both fine —
+and a group of one (`[id]='x'`) is just that prop. Whitespace around the
+separator is allowed **inside the brackets only**, because outside them a space
+is what ends an attribute.
+
+> The final spelling is not settled yet. All three are supported so they can be
+> lived with for a while; one of them may win later.
+
+The value can be anything a single prop takes, interpolation included, and
+everything else on the tag behaves as it did:
+
+```javascript
+html`<div [a,b]=${value} />`              // both get the same reference
+html`<div [a,b]="x${y}z" />`              // both get the same built string
+html`<div [hidden, disabled] />`          // a boolean group, both true
+html`<div [class:on, class:big]=${ok} />` // -> class="on big"
+```
+
+Groups are split at build time, so one group costs one op per name in the
+cached program and nothing at all on render. A dangling separator (`a,`), an
+empty group (`[]`) or a missing `]` throws — each is a typo rather than a name.
+
+A quoted value is still positional, so `<div '[a,b]' />` is the text `[a,b]`,
+not a group.
+
 ## Shorthand tags
 
 A tag starting with `$` resolves through a registry:
