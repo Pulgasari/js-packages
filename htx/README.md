@@ -23,6 +23,35 @@ html`<div class="a" class=${['b','c']} class=${{ d: true, e: false }} />`
 `class` takes a string, an array or an object; `style` takes an object. An empty
 tag `<>…</>` falls back to `Fragment`.
 
+## Tag selectors
+
+A tag name carries its id and classes the way a CSS selector does:
+
+```javascript
+html`<div#main.card.big />`   // <div id="main" class="card big">
+html`<div.card />`            // <div class="card">
+html`<.card />`              // a div, the way Emmet reads a tagless selector
+html`<$icon.big />`          // the shorthand tag, plus class="big"
+```
+
+The classes are emitted **before** any written attribute, so `class=` appends
+to them and duplicates collapse. A written `id=` replaces the selector's id —
+written beats shorthand, same as on a shorthand tag:
+
+```javascript
+html`<div.card class=${['big']} />`  // class="card big"
+html`<div.a.b class="a" />`          // class="a b"
+html`<div#main id='other' />`        // id="other"
+```
+
+An element has one id, so the first `#` wins; a second one is a typo and says
+so in the console. Splitting happens at build time, which means the warning
+fires once per template, not once per render.
+
+This closes a tag name to `.` and `#`. Only a custom element could want one —
+`<my.el-ement>` is legal HTML — and an interpolated name is never split, so
+`<${'my.el-ement'} />` still gets through.
+
 ## Prop groups
 
 One value, several names. All three spellings do the same thing:

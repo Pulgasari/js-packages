@@ -22,6 +22,7 @@ modified fork of htm (developit/htm). changes vs upstream:
 - class accepts string | array | object
 - style accepts object
 - a prop group — [id, title]='x' — writes one value to several names
+- a tag selector — <div#main.card.big> — sets id and class
 */
 
 // :::::: IMPORTS
@@ -211,6 +212,55 @@ function splitProp (name) {
   return names;
 }
 
+// :::::: TAG SELECTORS
+
+/*
+a tag name carries its id and classes the way a css selector does:
+
+  <div#main.card.big />   ->  <div id='main' class='card big'>
+  <$icon.big />           ->  the shorthand tag, plus class='big'
+  <.card />               ->  a div, the way emmet reads a selector with no tag
+
+the same notation is in hiccup, mithril, emmet, pug, haml, marko and imba,
+which is reason enough not to invent a different one.
+
+split at build time, so it compiles to the very ops a written id= and class=
+would and costs nothing on render. the classes are emitted before any written
+attribute, so class= appends to them; id= replaces the selector's id, because
+written always beats shorthand here as it does on a shorthand tag.
+
+a tag name is thereby closed to '.' and '#'. only a custom element could ever
+want one — <my.el-ement> is legal html — and ${'my.el-ement'} still gets it
+through, since an interpolated tag name is never split.
+*/
+
+const SELECTOR = /[.#]/;
+
+function splitSelector (name) {
+  if (!SELECTOR.test(name)) return null;
+
+  const classes = [];
+  let tag = '';
+  let id  = '';
+
+  // a lookahead split keeps the sigils, so each token says what it is
+  for (const token of name.split(/(?=[.#])/)) {
+    const sigil = token[0];
+    const value = token.slice(1);
+
+    if (sigil !== '.' && sigil !== '#') { tag = token; continue; }
+    if (!value) continue; // a dangling '.' or '#' names nothing
+
+    if (sigil === '.') classes.push(value);
+    else if (!id) id = value;
+    // an element has one id. the first wins, because a template reads left to
+    // right, and the rest is a typo worth hearing about
+    else console.warn(`[htx] <${name}> has more than one id: keeping '#${id}', ignoring '#${value}'`);
+  }
+
+  return { tag: tag || 'div', id, classes };
+}
+
 // :::::: BUILD
 
 function build (statics) {
@@ -227,7 +277,16 @@ function build (statics) {
       current.push(CHILD_APPEND, field, buffer);
     }
     else if (mode === MODE_TAGNAME && (field || buffer)) {
-      current.push(TAG_SET, field, buffer);
+      // an interpolated tag name is whatever it is — only a written one is a
+      // selector. the class list rides as an array so finalize() dedupes it
+      // word by word against a written class
+      const selector = field ? null : splitSelector(buffer);
+
+      current.push(TAG_SET, field, selector ? selector.tag : buffer);
+
+      if (selector?.id) current.push(PROP_SET, 0, selector.id, 'id');
+      if (selector?.classes.length) current.push(PROP_SET, 0, selector.classes, 'class');
+
       mode = MODE_WHITESPACE;
     }
     else if (mode === MODE_WHITESPACE && buffer === '...' && field) {
