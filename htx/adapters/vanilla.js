@@ -14,8 +14,8 @@
 
 // :::::: IMPORT
 
-import { updateElement } from '@domina/methods/updateElement.js';
-import { createHtml }    from '../index.js';
+import { updateElement }       from '@domina/methods/updateElement.js';
+import { createHtml, RAW_HTML } from '../index.js';
 
 export const Fragment = Symbol('htx.fragment');
 
@@ -24,6 +24,15 @@ export const Fragment = Symbol('htx.fragment');
 // :::::: HELPERS
 
 const isFn = (value) => typeof value === 'function';
+
+// a document fragment has no innerHTML, so a string destined for one is parsed
+// in a throwaway <template> instead. inert while parsing: no request is sent
+// and no script runs until the nodes are in the document
+const parseHtml = (html) => {
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  return template.content;
+};
 
 // :::::: SVG SONDERBEHANDLUNG
 // (gehört evtl. direkt in @domina gelöst?)
@@ -54,14 +63,28 @@ const make = (tag, props) => updateElement(
 );
 
 function h (type, props, ...children) {
-  // htx never calls a component; preact does that itself, so vanilla has to
+  // htx never calls a component; preact does that itself, so vanilla has to.
+  // a component is not an element, so it keeps !html and may forward it
   if (isFn(type)) return type(props ?? {}, children);
 
+  // taken out before updateElement sees it: '!html' is not a legal attribute
+  // name, so setAttribute would throw on it
+  const raw = props?.[RAW_HTML];
+  if (raw != null) delete props[RAW_HTML];
+
   const node = !type || type === Fragment ? document.createDocumentFragment() : make(type, props ?? {});
+
+  // first, because innerHTML replaces whatever the element already holds
+  if (raw != null) node.nodeType === Node.DOCUMENT_FRAGMENT_NODE ? node.append(parseHtml(raw)) : (node.innerHTML = raw);
 
   // append takes strings as text nodes, so primitives need no wrapping. false
   // and nullish are dropped the way a vdom drops them
   const kids = children.flat(Infinity).filter(child => child != null && child !== false && child !== true);
+
+  // preact drops the children in this case, so the two adapters disagree —
+  // worth hearing about rather than picking one silently
+  if (raw != null && kids.length) console.warn('[htx] !html together with children: appended after the parsed markup, which preact would instead drop');
+
   if (kids.length) node.append(...kids);
 
   return node;

@@ -137,6 +137,42 @@ An unknown `<$foo>` throws rather than rendering an element nobody asked for.
 attribute. The quote is the whole distinction, and it is the only change the
 tokenizer needed.
 
+## Raw HTML
+
+A string that already *is* markup has to be parsed to become nodes, and as a
+child it would be escaped — correctly, but not usefully:
+
+```javascript
+html`<div>${'<b>x</b>'}</div>`        // <div>&lt;b&gt;x&lt;/b&gt;</div>
+html`<div !html=${'<b>x</b>'} />`     // <div><b>x</b></div>
+```
+
+`!html` is that escape hatch, for Markdown output, CMS fields and pre-rendered
+server markup. The ugly name is the point: parsing is what runs a `<script>` or
+an `onerror=` hidden in the string, so anything from someone else's hands
+belongs in a sanitizer (or a renderer with escaping switched on) first.
+
+The core only names the prop; each adapter writes it — `innerHTML` in vanilla,
+`dangerouslySetInnerHTML` in preact. It resolves **late**, when an element is
+actually created, so a component is not an element and receives the prop
+untouched:
+
+```javascript
+const Card = ({ ...rest }) => html`<section ...${rest} />`;
+html`<${Card} !html=${markup} />`     // the markup lands on the <section>
+```
+
+Since `'!html'` is nothing an object literal can shorthand, the name is
+exported for the spread form:
+
+```javascript
+import { RAW_HTML } from '@pulgasari/htx';
+html`<div ...${{ [RAW_HTML]: markup }} />`;
+```
+
+Don't mix it with children: vanilla appends them after the parsed markup,
+preact drops them, and both say so in the console.
+
 ## The vanilla adapter
 
 No vdom and no diffing: a template call builds DOM nodes and hands them over. It

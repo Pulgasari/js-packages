@@ -23,6 +23,7 @@ modified fork of htm (developit/htm). changes vs upstream:
 - style accepts object
 - a prop group — [id, title]='x' — writes one value to several names
 - a tag selector — <div#main.card.big> — sets id and class
+- !html names the raw-html escape hatch, which each adapter then writes
 */
 
 // :::::: IMPORTS
@@ -54,6 +55,21 @@ const PROP_APPEND   = MODE_PROP_APPEND;
  * a symbol so nothing written in a template can reach the same slot.
  */
 export const POSITIONAL = Symbol('positional');
+
+/**
+ * the raw-html escape hatch — <div !html=${markup} />. a string that is already
+ * markup has to be parsed to become nodes, and parsing is what runs a
+ * <script> or an onerror= inside it, so the name is deliberately ugly.
+ *
+ * the core only names it. writing it is the adapter's business, because
+ * innerHTML and preact's dangerouslySetInnerHTML have nothing in common, and
+ * it is resolved late on purpose: a component is not an element, so it receives
+ * the prop untouched and can forward it to the element it renders.
+ *
+ * exported so it can be spread — ...${{ [RAW_HTML]: markup }} — since '!html'
+ * is not something an object literal can shorthand.
+ */
+export const RAW_HTML = '!html';
 
 const CLASSES = Symbol('classes');
 const STYLES  = Symbol('styles');
