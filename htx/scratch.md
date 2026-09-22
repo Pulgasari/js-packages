@@ -1,5 +1,7 @@
 # scratch
 
+this file is only for brainstorming.
+
 ```javascript
 htx`<div onclick=${doSth} />`;
 
