@@ -21,6 +21,9 @@ modified fork of htm (developit/htm). changes vs upstream:
 - empty tag (<>...</>) falls back to Fragment
 - class accepts string | array | object
 - style accepts object
+- a prop group — [id, title]='x' — writes one value to several names
+- a tag selector — <div#main.card.big> — sets id and class
+- !html names the raw-html escape hatch, which each adapter then writes
 */
 
 // :::::: IMPORTS
@@ -53,6 +56,21 @@ const PROP_APPEND   = MODE_PROP_APPEND;
  */
 export const POSITIONAL = Symbol('positional');
 
+/**
+ * the raw-html escape hatch — <div !html=${markup} />. a string that is already
+ * markup has to be parsed to become nodes, and parsing is what runs a
+ * <script> or an onerror= inside it, so the name is deliberately ugly.
+ *
+ * the core only names it. writing it is the adapter's business, because
+ * innerHTML and preact's dangerouslySetInnerHTML have nothing in common, and
+ * it is resolved late on purpose: a component is not an element, so it receives
+ * the prop untouched and can forward it to the element it renders.
+ *
+ * exported so it can be spread — ...${{ [RAW_HTML]: markup }} — since '!html'
+ * is not something an object literal can shorthand.
+ */
+export const RAW_HTML = '!html';
+
 const CLASSES = Symbol('classes');
 const STYLES  = Symbol('styles');
 
@@ -81,8 +99,14 @@ function appendProp (props, key, value) {
 
   if (!list) { props[key] += value + ''; return; }
 
-  const last = list[list.length - 1];
-  last[1] = (last[1] == null ? '' : last[1]) + value;
+  // the entry this append belongs to is the last one written under the same
+  // key, not simply the last one: a prop group interleaves its siblings, so
+  // class,className="a${x}" writes both before either appends
+  let i = list.length - 1;
+  while (i > 0 && list[i][0] !== key) i--;
+
+  const entry = list[i];
+  entry[1] = (entry[1] == null ? '' : entry[1]) + value;
 }
 
 function finalize (props) {
@@ -170,24 +194,115 @@ function evaluate (h, built, fields, args, memo = true) {
   return args;
 }
 
+// :::::: PROP GROUPS
+
+/*
+a prop group writes one value to several names:
+
+  <$box [id, title]='example' />   ->  id='example' title='example'
+  <$box id,title='example' />
+  <$box id|title='example' />
+
+either separator works in either spelling, and a group of one ([id]='x') is
+just that prop. whitespace is allowed inside the brackets only, because
+outside them a space is what ends an attribute.
+
+the split happens here, at build time, so a group costs one op per name in the
+cached program and nothing at all on render.
+*/
+
+const SEPARATOR = /[,|]/;
+
+function splitProp (name) {
+  const bracketed = name[0] === '[';
+
+  if (!bracketed && !SEPARATOR.test(name)) return [name];
+  if (bracketed && name[name.length - 1] !== ']') throw new Error(`[htx] unclosed prop group '${name}'`);
+
+  const names = (bracketed ? name.slice(1, -1) : name).split(SEPARATOR);
+
+  // an empty name means a dangling separator ('id,' — a space where the
+  // unbracketed forms do not allow one) or an empty group. both are typos
+  if (names.some(part => !part)) throw new Error(`[htx] malformed prop group '${name}'`);
+
+  return names;
+}
+
+// :::::: TAG SELECTORS
+
+/*
+a tag name carries its id and classes the way a css selector does:
+
+  <div#main.card.big />   ->  <div id='main' class='card big'>
+  <$icon.big />           ->  the shorthand tag, plus class='big'
+  <.card />               ->  a div, the way emmet reads a selector with no tag
+
+the same notation is in hiccup, mithril, emmet, pug, haml, marko and imba,
+which is reason enough not to invent a different one.
+
+split at build time, so it compiles to the very ops a written id= and class=
+would and costs nothing on render. the classes are emitted before any written
+attribute, so class= appends to them; id= replaces the selector's id, because
+written always beats shorthand here as it does on a shorthand tag.
+
+a tag name is thereby closed to '.' and '#'. only a custom element could ever
+want one — <my.el-ement> is legal html — and ${'my.el-ement'} still gets it
+through, since an interpolated tag name is never split.
+*/
+
+const SELECTOR = /[.#]/;
+
+function splitSelector (name) {
+  if (!SELECTOR.test(name)) return null;
+
+  const classes = [];
+  let tag = '';
+  let id  = '';
+
+  // a lookahead split keeps the sigils, so each token says what it is
+  for (const token of name.split(/(?=[.#])/)) {
+    const sigil = token[0];
+    const value = token.slice(1);
+
+    if (sigil !== '.' && sigil !== '#') { tag = token; continue; }
+    if (!value) continue; // a dangling '.' or '#' names nothing
+
+    if (sigil === '.') classes.push(value);
+    else if (!id) id = value;
+    // an element has one id. the first wins, because a template reads left to
+    // right, and the rest is a typo worth hearing about
+    else console.warn(`[htx] <${name}> has more than one id: keeping '#${id}', ignoring '#${value}'`);
+  }
+
+  return { tag: tag || 'div', id, classes };
+}
+
 // :::::: BUILD
 
 function build (statics) {
-  let char, propName;
+  let char, names;
   let mode    = MODE_TEXT;
   let buffer  = '';
   let current = [0];
   let quote   = '';
   let quoted  = false;
-  
-  
+  let group   = false;
 
   const commit = field => {
     if (mode === MODE_TEXT && (field || (buffer = buffer.replace(/^\s*\n\s*|\s*\n\s*$/g, '')))) {
       current.push(CHILD_APPEND, field, buffer);
     }
     else if (mode === MODE_TAGNAME && (field || buffer)) {
-      current.push(TAG_SET, field, buffer);
+      // an interpolated tag name is whatever it is — only a written one is a
+      // selector. the class list rides as an array so finalize() dedupes it
+      // word by word against a written class
+      const selector = field ? null : splitSelector(buffer);
+
+      current.push(TAG_SET, field, selector ? selector.tag : buffer);
+
+      if (selector?.id) current.push(PROP_SET, 0, selector.id, 'id');
+      if (selector?.classes.length) current.push(PROP_SET, 0, selector.classes, 'class');
+
       mode = MODE_WHITESPACE;
     }
     else if (mode === MODE_WHITESPACE && buffer === '...' && field) {
@@ -201,22 +316,25 @@ function build (statics) {
     else if (mode === MODE_WHITESPACE && buffer && !field) {
       // the quote is the whole distinction: 'bx:search' is a positional value,
       // a bare word is a boolean attribute (<a disabled>)
-      quoted ? current.push(PROP_SET, 0, buffer, POSITIONAL)
-             : current.push(PROP_SET, 0, true,   buffer);
+      if (quoted) current.push(PROP_SET, 0, buffer, POSITIONAL);
+      else for (const name of splitProp(buffer)) current.push(PROP_SET, 0, true, name);
     }
     else if (mode >= MODE_PROP_SET) {
+      // one op per name in the group, so every name gets the same value and
+      // then the same appends
       if (buffer || (!field && mode === MODE_PROP_SET)) {
-        current.push(mode, 0, buffer, propName);
+        for (const name of names) current.push(mode, 0, buffer, name);
         mode = MODE_PROP_APPEND;
       }
       if (field) {
-        current.push(mode, field, 0, propName);
+        for (const name of names) current.push(mode, field, 0, name);
         mode = MODE_PROP_APPEND;
       }
     }
 
     buffer = '';
     quoted = false;
+    group  = false;
   };
 
   for (let i = 0; i < statics.length; i++) {
@@ -257,9 +375,10 @@ function build (statics) {
       }
       else if (!mode) {} // ignore everything until the tag ends
       else if (char === '=') {
-        mode = MODE_PROP_SET;
-        propName = buffer;
+        mode   = MODE_PROP_SET;
+        names  = splitProp(buffer);
         buffer = '';
+        group  = false;
       }
       else if (char === '/' && (mode < MODE_PROP_SET || statics[i][j + 1] === '>')) {
         commit();
@@ -268,10 +387,19 @@ function build (statics) {
         (current = current[0]).push(CHILD_RECURSE, 0, mode);
         mode = MODE_SLASH;
       }
+      // a bracketed prop group — [id, title]='x' — is a single token although
+      // it may hold whitespace, so the brackets suspend the space boundary
+      else if (char === '[' && mode === MODE_WHITESPACE && !buffer) {
+        group  = true;
+        buffer = char;
+      }
+      else if (char === ']' && group) {
+        group   = false;
+        buffer += char;
+      }
       else if (char === ' ' || char === '\t' || char === '\n' || char === '\r') {
         // <a disabled>
-        commit();
-        mode = MODE_WHITESPACE;
+        if (!group) { commit(); mode = MODE_WHITESPACE; }
       }
       else buffer += char;
 
@@ -417,6 +545,26 @@ function createHtml (h, Fragment, { memo = true, tags } = {}) {
   };
 
   html.tags = registry;
+
+  /**
+   * attaches a helper to the tag function, so a template can reach it the same
+   * way it reaches html itself — use({ md }) then html.md(text). the point is
+   * that nothing in the core has to know what md is, or import it.
+   *
+   * use('md', fn) or use({ md: fn, … })
+   */
+  html.use = (name, fn) => {
+    const helpers = isString(name) ? { [name]: fn } : name;
+
+    // a helper named after the api would replace it, and the failure would
+    // show up far from the call that caused it
+    for (const key of Object.keys(helpers)) {
+      if (key === 'define' || key === 'tags' || key === 'use') throw new Error(`[htx] '${key}' is part of the html api and cannot be a helper`);
+    }
+
+    Object.assign(html, helpers);
+    return html;
+  };
 
   if (tags) html.define(tags);
 
