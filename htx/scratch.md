@@ -10,6 +10,10 @@ htx`<div onclick|onresize=${doSth} />`;
 htx`<div on:click|resize=${doSth} />`;
 htx`<div on:[click|resize]=${doSth} />`;
 htx`<div on:[click,resize]=${doSth} />`;
+
+htx`<div key:ctrl+f=${doSth} />`;
+htx`<div onkeydown:ctrl+f=${doSth} />`;
+htx`<div on:keydown[ctrl+f]=${doSth} />`;
 ```
 
 ```javascript
