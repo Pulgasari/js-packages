@@ -1,5 +1,5 @@
-// @pulgasari/devtools/panels/css.js
-//
+// panels/css.js
+
 // an editable <aufbau-code> writing straight into a <style> in <head>, backed by
 // localStorage so the sheet survives reloads. the style node is appended as soon
 // as this module evaluates, so stored css paints with the first frame instead of
