@@ -1,16 +1,11 @@
-// @pulgasari/devtools/panels/data.js
-//
-// one panel, four collapsible sections: runtime, memory, storage, network.
-//
-// three rules hold throughout:
-//
-//  1. a value the browser has no api for is rendered as missing, never as 0.
-//     confusing "not measurable here" with "measured, and it is zero" is the
-//     fastest way to make a devtools panel lie.
-//  2. anything expensive (reading cache bodies, counting object stores) sits
-//     behind an explicit button. a panel that measures continuously changes the
-//     numbers it is measuring.
-//  3. polling only runs while the panel is actually visible.
+// panels/data.js
+
+/*
+1. a value the browser has no api for is rendered as missing, never as 0.
+2. anything expensive sits behind an explicit button. (like reading cache bodies, counting object stores)
+   a panel that measures continuously changes the numbers it is measuring.
+3. polling only runs while the panel is actually visible.
+*/
 
 import createElement from '@domina/methods/createElement.js';
 import fmt           from '../fmt.js';
