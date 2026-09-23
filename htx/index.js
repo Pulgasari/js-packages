@@ -60,7 +60,7 @@ const RAW_HTML   = '!html';
 const isClassKey = (key) => key === 'class' || key === 'className' || key.startsWith('class:');
 
 function addClass (list, value) {
-  if (!value) return;
+       if (!value) return;
   else if (isString(value)) list.push(value);
   else if  (isArray(value)) for (const item of value) addClass(list, item);
   else if (isObject(value)) for (const [name, enabled] of Object.entries(value)) if (enabled) list.push(name);      
@@ -224,7 +224,7 @@ function splitSelector (name) {
 
     if (sigil === '.') classes.push(value);
     else if (!id) id = value;
-    else console.warn(`[htx] <${name}> has more than one id: keeping '#${id}', ignoring '#${value}'`);
+    else logger.warn(`<${name}> has more than one id: keeping '#${id}', ignoring '#${value}'`);
   }
 
   return { tag: tag || 'div', id, classes };
@@ -250,7 +250,7 @@ function build (statics) {
 
       current.push(TAG_SET, field, selector ? selector.tag : buffer);
 
-      if (selector?.id) current.push(PROP_SET, 0, selector.id, 'id');
+      if (selector?.id)             current.push(PROP_SET, 0, selector.id,      'id'   );
       if (selector?.classes.length) current.push(PROP_SET, 0, selector.classes, 'class');
 
       mode = MODE_WHITESPACE;
