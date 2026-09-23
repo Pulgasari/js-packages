@@ -31,6 +31,8 @@ modified fork of htm (developit/htm). changes vs upstream:
 import { isArray, isFn, isObject, isString } from '@pulgasari/is';
 import { Logger } from '@pulgasari/logger';
 
+const logger = new Logger ({ prefix: 'HTX' });
+
 // :::::: CONSTANTS
 
 const MODE_SLASH       = 0;
@@ -50,13 +52,12 @@ const PROP_APPEND   = MODE_PROP_APPEND;
 
 // :::::: PROP MERGING
 
+const CLASSES    = Symbol('classes');
 const POSITIONAL = Symbol('positional');
-const RAW_HTML = '!html';
+const STYLES     = Symbol('styles');
+const RAW_HTML   = '!html';
 
-const CLASSES = Symbol('classes');
-const STYLES  = Symbol('styles');
-
-const isClassKey = key => key === 'class' || key === 'className' || key.startsWith('class:');
+const isClassKey = (key) => key === 'class' || key === 'className' || key.startsWith('class:');
 
 function addClass (list, value) {
   if (!value) return;
@@ -117,8 +118,8 @@ function finalize (props) {
     // so don't mix the two forms on one element.
     for (const [, value] of styles) {
       if (!value) continue;
-      else if (isString(value)) merged = value;
-      else if (merged && typeof merged === 'object') Object.assign(merged, value);
+      else if (isString(value))  merged = value;
+      else if (isObject(merged)) Object.assign(merged, value);
       else merged = { ...value };
     }
 
@@ -245,9 +246,6 @@ function build (statics) {
       current.push(CHILD_APPEND, field, buffer);
     }
     else if (mode === MODE_TAGNAME && (field || buffer)) {
-      // an interpolated tag name is whatever it is — only a written one is a
-      // selector. the class list rides as an array so finalize() dedupes it
-      // word by word against a written class
       const selector = field ? null : splitSelector(buffer);
 
       current.push(TAG_SET, field, selector ? selector.tag : buffer);
@@ -377,12 +375,6 @@ a shorthand is a tag whose name starts with $ and resolves through a registry:
   <$icon 'bx:search' />          ->  <aufbau-icon icon="bx:search" mode="mask">
   <$icon 'bx:search' '2em' />    ->  <aufbau-icon icon="bx:search" size="2em" mode="mask">
   <$icon 'x' mode="image" />     ->  <aufbau-icon icon="x" mode="image">
-
-precedence runs defaults < positional < written attribute, so a default is a
-starting point and anything spelled out on the tag wins.
-
-a positional past the declared args becomes a child, which is what makes the
-args list optional: define('em', 'strong') and <$em 'hi' /> is <strong>hi</strong>.
 */
 
 // 'aufbau-icon' | Component | { tag, args?, props? }
