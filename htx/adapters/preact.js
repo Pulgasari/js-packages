@@ -11,8 +11,8 @@
  * limitations under the License.
  */
 
-import { h, Fragment }          from 'preact';
-import { createHtml, RAW_HTML } from '../index.js';
+import { h, Fragment }         from 'preact';
+import { createHTX, RAW_HTML } from '../index.js';
 
 /*
 !html is htx's name for the raw-html escape hatch; preact's own is a prop
@@ -38,3 +38,4 @@ function hx (type, props, ...children) {
 
 export const html = createHtml(hx, Fragment);
 export * from 'preact';
+‘‘‘‘
