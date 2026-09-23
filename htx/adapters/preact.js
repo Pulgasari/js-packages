@@ -38,4 +38,3 @@ function hx (type, props, ...children) {
 
 export const html = createHtml(hx, Fragment);
 export * from 'preact';
-‘‘‘‘
