@@ -1,25 +1,23 @@
 // @pulgasari/devtools/panels/dom.js
-//
-// the element panel: a lazy tree of the live document, an on-page highlight, a
-// pick mode, and a detail view for whatever is selected.
-//
-// pick mode is the part that matters on a phone. there is no hover, so the way
-// you get from "this box looks wrong" to the node behind it is to tap it — the
-// tree alone is unusable for finding anything in a real page.
-//
-// the panel's own subtree is excluded everywhere: it is in the document it is
-// inspecting, and without the guard the tree contains itself and every pick
-// lands on a devtools row.
+
+/*
+the element panel: a lazy tree of the live document, an on-page highlight,
+a pick mode, and a detail view for whatever is selected.
+
+pick mode is the part that matters on a phone. there is no hover, 
+so the way you get from "this box looks wrong" to the node behind it is to tap it 
+— the tree alone is unusable for finding anything in a real page.
+
+the panel's own subtree is excluded everywhere: it is in the document it is inspecting,
+and without the guard the tree contains itself and every pick lands on a devtools row.
+*/
 
 import createElement from '@domina/methods/createElement.js';
-
 import fmt from '../fmt.js';
 
 const el = createElement;
-
 const PANEL_ID   = 'devtools';
 const MAX_CHILDREN = 300; // a table with 5000 rows would build 5000 rows
-
 const isOurs = (node) => !!node?.closest?.(`#${PANEL_ID}, #devtools-highlight`);
 
 // :::::: HIGHLIGHT :::::::::::::::::::::::::::::::::::::::::::::
@@ -31,9 +29,8 @@ mode reads elementFromPoint(), and a highlight that could be hit would return
 itself for every tap.
 */
 const $highlight = el('div', { id: 'devtools-highlight', hidden: true }, el('div'), el('span'));
-
-const $hlBox   = $highlight.firstElementChild;
-const $hlLabel = $highlight.lastElementChild;
+const $hlBox     = $highlight.firstElementChild;
+const $hlLabel   = $highlight.lastElementChild;
 
 function highlight (element) {
   if (!element?.getBoundingClientRect) return hideHighlight();
