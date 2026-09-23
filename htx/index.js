@@ -397,9 +397,6 @@ function resolveTag (props, entry) {
 
   if (props) {
     for (const key in props) setProp(out, key, props[key]);
-
-    // class and style ride on symbols, which for-in does not reach. they are
-    // concatenated rather than overwritten, same as two class props on one tag
     for (const symbol of [CLASSES, STYLES]) {
       if (props[symbol]) out[symbol] = [...(out[symbol] ?? []), ...props[symbol]];
     }
@@ -414,8 +411,6 @@ function resolveTag (props, entry) {
   for (let i = 0; i < positional.length; i++) {
     const name = args[i];
 
-    // the slot is skipped when the tag spells that attribute out — written
-    // always beats positional. anything past the declared slots is a child
     if (!name) extra.push(positional[i]);
     else if (!props || !(name in props)) out[name] = positional[i];
   }
@@ -426,16 +421,9 @@ function resolveTag (props, entry) {
 // :::::: TAG FUNCTION
 
 function createHtml (h, Fragment, { memo = true, tags } = {}) {
-  const cache = new Map;
-
-  /*
-  a plain object rather than a Map, so a registry entry can be assigned straight
-  onto it — html.tags.icon = { … } — as readily as through define(). the leading
-  $ is optional in the key, because the tag is written <$icon> and keying it the
-  same way is the obvious guess.
-  */
-  const registry   = {};
+  const cache      = new Map;
   const normalized = new Map;
+  const registry   = {};
 
   // keyed on the spec object, so reassigning a tag re-normalises it
   const entryFor = (name) => {
@@ -448,8 +436,6 @@ function createHtml (h, Fragment, { memo = true, tags } = {}) {
     return entry;
   };
 
-  // an empty tag (<>...</>) leaves the tag name as '', which falls back to Fragment.
-  // `this` is the staticness bit field and is forwarded untouched.
   const hx = function (type, props, ...children) {
     const shorthand = isString(type) && type[0] === '$';
     let entry = null;
@@ -486,13 +472,7 @@ function createHtml (h, Fragment, { memo = true, tags } = {}) {
 
   html.tags = registry;
 
-  /**
-   * attaches a helper to the tag function, so a template can reach it the same
-   * way it reaches html itself — use({ md }) then html.md(text). the point is
-   * that nothing in the core has to know what md is, or import it.
-   *
-   * use('md', fn) or use({ md: fn, … })
-   */
+  // use('md', fn) or use({ md: fn, … })
   html.use = (name, fn) => {
     const helpers = isString(name) ? { [name]: fn } : name;
 
