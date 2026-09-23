@@ -29,6 +29,7 @@ modified fork of htm (developit/htm). changes vs upstream:
 // :::::: IMPORTS
 
 import { isArray, isFn, isObject, isString } from '@pulgasari/is';
+import { Logger } from '@pulgasari/logger';
 
 // :::::: CONSTANTS
 
@@ -49,27 +50,8 @@ const PROP_APPEND   = MODE_PROP_APPEND;
 
 // :::::: PROP MERGING
 
-/**
- * a standalone quoted value in a tag — <$icon 'bx:search' /> — collects here
- * rather than becoming a boolean attribute, which is what <a disabled> is.
- * a symbol so nothing written in a template can reach the same slot.
- */
-export const POSITIONAL = Symbol('positional');
-
-/**
- * the raw-html escape hatch — <div !html=${markup} />. a string that is already
- * markup has to be parsed to become nodes, and parsing is what runs a
- * <script> or an onerror= inside it, so the name is deliberately ugly.
- *
- * the core only names it. writing it is the adapter's business, because
- * innerHTML and preact's dangerouslySetInnerHTML have nothing in common, and
- * it is resolved late on purpose: a component is not an element, so it receives
- * the prop untouched and can forward it to the element it renders.
- *
- * exported so it can be spread — ...${{ [RAW_HTML]: markup }} — since '!html'
- * is not something an object literal can shorthand.
- */
-export const RAW_HTML = '!html';
+const POSITIONAL = Symbol('positional');
+const RAW_HTML = '!html';
 
 const CLASSES = Symbol('classes');
 const STYLES  = Symbol('styles');
@@ -148,12 +130,6 @@ function finalize (props) {
 
 // :::::: EVALUATE
 
-/*
-`memo` caches a fully static child subtree back into `built` and reuses it on
-every later call. that is the right trade for an immutable vnode and the wrong
-one for a dom node: the second render would get the very same node and simply
-move it out of the first tree. adapters that build real dom pass memo: false.
-*/
 function evaluate (h, built, fields, args, memo = true) {
   let tmp;
   built[0] = 0;
@@ -202,13 +178,6 @@ a prop group writes one value to several names:
   <$box [id, title]='example' />   ->  id='example' title='example'
   <$box id,title='example' />
   <$box id|title='example' />
-
-either separator works in either spelling, and a group of one ([id]='x') is
-just that prop. whitespace is allowed inside the brackets only, because
-outside them a space is what ends an attribute.
-
-the split happens here, at build time, so a group costs one op per name in the
-cached program and nothing at all on render.
 */
 
 const SEPARATOR = /[,|]/;
@@ -220,9 +189,6 @@ function splitProp (name) {
   if (bracketed && name[name.length - 1] !== ']') throw new Error(`[htx] unclosed prop group '${name}'`);
 
   const names = (bracketed ? name.slice(1, -1) : name).split(SEPARATOR);
-
-  // an empty name means a dangling separator ('id,' — a space where the
-  // unbracketed forms do not allow one) or an empty group. both are typos
   if (names.some(part => !part)) throw new Error(`[htx] malformed prop group '${name}'`);
 
   return names;
@@ -236,18 +202,6 @@ a tag name carries its id and classes the way a css selector does:
   <div#main.card.big />   ->  <div id='main' class='card big'>
   <$icon.big />           ->  the shorthand tag, plus class='big'
   <.card />               ->  a div, the way emmet reads a selector with no tag
-
-the same notation is in hiccup, mithril, emmet, pug, haml, marko and imba,
-which is reason enough not to invent a different one.
-
-split at build time, so it compiles to the very ops a written id= and class=
-would and costs nothing on render. the classes are emitted before any written
-attribute, so class= appends to them; id= replaces the selector's id, because
-written always beats shorthand here as it does on a shorthand tag.
-
-a tag name is thereby closed to '.' and '#'. only a custom element could ever
-want one — <my.el-ement> is legal html — and ${'my.el-ement'} still gets it
-through, since an interpolated tag name is never split.
 */
 
 const SELECTOR = /[.#]/;
@@ -269,8 +223,6 @@ function splitSelector (name) {
 
     if (sigil === '.') classes.push(value);
     else if (!id) id = value;
-    // an element has one id. the first wins, because a template reads left to
-    // right, and the rest is a typo worth hearing about
     else console.warn(`[htx] <${name}> has more than one id: keeping '#${id}', ignoring '#${value}'`);
   }
 
@@ -444,10 +396,6 @@ function normalizeTag (spec) {
   return { tag: spec.tag, args: isString(args) ? [args] : args, props: spec.props ?? null };
 }
 
-/**
- * merges defaults, positionals and written attributes into one props object.
- * @returns [props, extraChildren]
- */
 function resolveTag (props, entry) {
   const out = {};
 
@@ -571,5 +519,5 @@ function createHtml (h, Fragment, { memo = true, tags } = {}) {
   return html;
 }
 
-export { createHtml, build, evaluate };
+export { createHtml, build, evaluate, POSITIONAL, RAW_HTML };
 export default createHtml;
