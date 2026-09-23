@@ -1,14 +1,16 @@
-// @pulgasari/devtools/panels/console.js
-//
-// the console panel: a filtered view over the ring buffer, an eval input, and a
-// lazy inspector per logged value.
-//
-// the buffer is not this module's own. boot.js in the host page installs a
-// recorder from <head>, long before this module can run, so everything logged
-// during boot is already there when the panel mounts. this drains it and then
-// receives further entries through the recorder's onPush hook. without a
-// recorder (devtools dropped into a page that has no shim) it patches console
-// itself and simply starts from the moment it loaded.
+// panels/console.js
+
+/*
+the console panel: a filtered view over the ring buffer, an eval input, 
+and a lazy inspector per logged value.
+
+the buffer is not this module's own. boot.js in the host page installs a
+recorder from <head>, long before this module can run, so everything logged
+during boot is already there when the panel mounts. this drains it and then
+receives further entries through the recorder's onPush hook. without a
+recorder (devtools dropped into a page that has no shim) it patches console
+itself and simply starts from the moment it loaded.
+*/
 
 import createElement from '@domina/methods/createElement.js';
 
