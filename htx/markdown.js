@@ -29,8 +29,7 @@ runs and nothing is fetched while it holds the markup.
 codespan and code tokens arrive already decoded and must not be touched again.
 */
 
-const BASIC = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
-
+const BASIC  = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
 const ENTITY = /&(#\d+|#[xX][\da-fA-F]+|[a-zA-Z][a-zA-Z\d]*);/g;
 
 let decoder;
@@ -70,7 +69,7 @@ function decode (text) {
  *                  paragraph becomes a <br> instead of collapsing to a space
  * @param handlers  { [tokenType]: (token, walk) => node } for marked extensions
  */
-export function createMarkdown (h, Fragment, { lexer, html: rawHtml = 'skip', breaks = false, handlers } = {}) {
+function createMarkdown (h, Fragment, { lexer, html: rawHtml = 'skip', breaks = false, handlers } = {}) {
   if (typeof lexer !== 'function') throw new Error('[htx] createMarkdown needs a lexer, e.g. { lexer: marked.lexer }');
 
   // `top` is marked's own distinction: in a block context a bare text token is
@@ -107,6 +106,27 @@ export function createMarkdown (h, Fragment, { lexer, html: rawHtml = 'skip', br
     const handler = handlers?.[t.type];
     if (handler) return handler(t, kids);
 
+    /*
+    return {
+      blockquote : () => h('blockquote', null, ...kids(t.tokens, true)),
+      heading    : () => h('h' + t.depth, null, ...inline(t)),
+      hr         : () => h('hr', null),
+      paragraph  : () => h('p', null, ...inline(t)),
+      table      : () => table(t),
+
+      //inline
+      br       : () => h('br',     null),
+      codespan : () => h('code',   null, t.text),
+      del      : () => h('del',    null, ...inline(t)),
+      em       : () => h('em',     null, ...inline(t)),
+      strong   : () => h('strong', null, ...inline(t)),
+
+      //
+      escape : () => t.text,
+      html   : () => raw(t),
+    }[t.type]();
+    */
+
     switch (t.type) {
       // structure
       case 'paragraph':  return h('p', null, ...inline(t));
@@ -118,7 +138,6 @@ export function createMarkdown (h, Fragment, { lexer, html: rawHtml = 'skip', br
       case 'list_item':  return h('li', null,
                            ...(t.task ? [h('input', { type: 'checkbox', checked: !!t.checked, disabled: true }), ' '] : []),
                            ...kids(t.tokens, t.loose));
-
       // inline
       case 'strong':     return h('strong', null, ...inline(t));
       case 'em':         return h('em', null, ...inline(t));
@@ -128,23 +147,12 @@ export function createMarkdown (h, Fragment, { lexer, html: rawHtml = 'skip', br
       case 'link':       return h('a', { href: t.href, title: t.title || null }, ...inline(t));
       case 'image':      return h('img', { src: t.href, alt: decode(t.text), title: t.title || null });
       case 'escape':     return t.text; // already the literal character
-
-      // a bare text token is a paragraph in a block context and text inline
       case 'text':       return top ? h('p', null, ...inline(t)) : t.tokens?.length ? h(Fragment, null, ...inline(t)) : text(t.text);
-
-      // code text arrives decoded; the info string may carry more than the
-      // language. the trailing newline is what marked's renderer emits too,
-      // which keeps the output comparable against it token for token
       case 'code':       return h('pre', null, h('code', t.lang ? { class: 'language-' + t.lang.trim().split(/\s+/)[0] } : null, t.text.endsWith('\n') ? t.text : t.text + '\n'));
-
       case 'html':       return raw(t);
-
-      // link definitions and blank lines render nothing. a checkbox is drawn by
-      // its list_item instead, from task/checked, which older marked versions
-      // carry too — they emit no checkbox token at all
-      case 'checkbox':
-      case 'def':
-      case 'space':      return null;
+      case 'checkbox' : return null;
+      case 'def'      : return null;
+      case 'space'    : return null;
 
       // an unknown type is a marked extension without a handler. showing its
       // source beats dropping content silently
@@ -156,4 +164,7 @@ export function createMarkdown (h, Fragment, { lexer, html: rawHtml = 'skip', br
   return (src) => h(Fragment, null, ...kids(lexer(src ?? ''), true));
 }
 
+// :::::: EXPORT
+
+export       { createMarkdown };
 export default createMarkdown;
