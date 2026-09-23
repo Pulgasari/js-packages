@@ -1,8 +1,10 @@
-// @pulgasari/devtools/fmt.js
-//
-// the formatters the panels share. this is the staging area for everything that
-// does not exist in @pulgasari/num yet — once a helper has proven itself here it
-// should move there and be dropped from this file.
+// fmt.js
+
+/*
+the formatters the panels share. 
+this is the staging area for everything that does not exist in @pulgasari/num yet.
+— once a helper has proven itself here it should move there and be dropped from this file.
+*/
 
 const UNITS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
 
