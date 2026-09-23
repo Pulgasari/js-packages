@@ -1,4 +1,4 @@
-// @pulgasari/devtools/panels/dom.js
+// panels/dom.js
 
 /*
 the element panel: a lazy tree of the live document, an on-page highlight,
