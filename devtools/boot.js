@@ -5,7 +5,7 @@
 import { autoloader }  from '@aufbau/elements';
 import adoptStylesheet from '@domina/methods/adoptStylesheet.js';
 import createElement   from '@domina/methods/createElement.js';
-import htx             from '@pulgasari/htx/adapters/vanilla.js';
+import htx             from '@htx/js';
 
 import settings, { SPEC }      from './settings.js';
 import { createConsolePanel }  from './panels/console.js';
