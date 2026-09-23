@@ -91,17 +91,19 @@ function h (type, props, ...children) {
 }
 
 /** the shared instance. use createVanillaHtml() for a registry of your own */ 
-const htx = createHtml(h, Fragment, { memo: false });
-const createVanillaHtml = (options) => createHtml(h, Fragment, { memo: false, ...options });
+const htx = createHTX (h, Fragment, { memo: false });
+const createVanillaHtml = (options) => createHTX (h, Fragment, { memo: false, ...options });
 
 // :::::: ALIASES
 
-const html = htx;
+const 
+createHtml = createHTX,
+html       = htx;
 
 // :::::: EXPORT
 
 export {
-  h, htx,
+  h, htx, createHTX,
   html, createVanillaHtml,
 };
 
