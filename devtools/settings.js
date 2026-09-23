@@ -1,14 +1,10 @@
-// @pulgasari/devtools/settings.js
-//
+// settings.js
+
 // one spec drives the defaults, the panel's controls and the persisted values.
 // every entry here has to change something observable — a settings panel full of
 // switches that do nothing is worse than no settings panel.
 
-const KEY = 'devtools:settings';
-
-// a curated slice of the highlight.js themes rather than the full index: fetching
-// the jsdelivr file list to populate a picker is a network round trip for a
-// dropdown, and these are the ones that read well on a dark panel
+const KEY         = 'devtools:settings';
 const CODE_THEMES = ['dracula', 'github-dark', 'nord', 'monokai', 'atom-one-dark', 'tokyo-night-dark', 'github'];
 
 export const SPEC = {
@@ -47,9 +43,10 @@ function sanitize (stored) {
     const entry = SPEC[key];
     if (!entry) continue;
 
-    if (entry.type === 'boolean' && typeof value === 'boolean') out[key] = value;
-    if (entry.type === 'enum'    && entry.values.includes(value)) out[key] = value;
-    if (entry.type === 'integer' && Number.isFinite(value) && value >= entry.min && value <= entry.max) out[key] = value;
+    if((entry.type === 'boolean' && typeof value === 'boolean') 
+    || (entry.type === 'enum'    && entry.values.includes(value))
+    || (entry.type === 'integer' && Number.isFinite(value) && value >= entry.min && value <= entry.max))
+    out[key] = value;
   }
 
   return out;
