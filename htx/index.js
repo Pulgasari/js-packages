@@ -138,7 +138,14 @@ function evaluate (h, built, fields, args, memo = true) {
   for (let i = 1; i < built.length; i++) {
     const type  = built[i++];
     const value = built[i] ? ((built[0] |= type ? 1 : 2), fields[built[i++]]) : built[++i];
-
+    /*
+    switch (type) {
+      case TAG_SET      : args[0] = value;; break;
+      case PROPS_ASSIGN : const props = args[1] || (args[1] = {}); for (const key of Object.keys(value)) setProp(props, key, value[key]); break;      
+      case PROP_SET     : setProp(args[1] || (args[1] = {}), built[++i], value); break;
+      case PROP_APPEND  : appendProp(args[1], built[++i], value); break;
+    }
+    */
     if (type === TAG_SET) {
       args[0] = value;
     }
@@ -160,8 +167,8 @@ function evaluate (h, built, fields, args, memo = true) {
         built[0] |= 2;
       }
       else {
-        built[i - 2] = CHILD_APPEND;
-        built[i] = tmp;
+        built[i-2] = CHILD_APPEND;
+        built[i]   = tmp;
       }
     }
     else args.push(value); // // type === CHILD_APPEND
