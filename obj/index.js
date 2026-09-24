@@ -6,12 +6,6 @@
 const hasStructuredClone = typeof structuredClone === 'function';
 
 export const 
-isObject      = value => value !== null && typeof value === 'object',
-isPlainObject = value => isObject(value) && (value.constructor === Object || !value.constructor);
-
-// :::::: HELPERS
-
-export const 
 isObject = value => value !== null && typeof value === 'object',
 isPlainObject = value => {
   if (value === null || typeof value !== 'object') return false;
@@ -280,7 +274,7 @@ transformValues = (object, ...fns) => {
   }
   
   return result;
-};
+},
 
 assign = Object.assign,
 merge  = deepMerge; // alias deepMerge to keep single optimized recursive implementation
