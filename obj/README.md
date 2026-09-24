@@ -23,6 +23,9 @@ getByPath({ a: { b: 1 } }, 'a.b');           // 1
 setByPath(state, 'user.name', 'ada');
 dropByKey({ a: 1, b: 2 }, 'b');              // { a: 1 }
 
+getByPath({}, 'a.b.c');                     // undefined, missing nodes never throw
+setByPath({}, 'a.b', 1);                    // { a: { b: 1 } }, missing nodes are created
+
 // chainable sugar: known methods run against the object,
 // everything else reads the property
 obj(data).getByPath('user.name');

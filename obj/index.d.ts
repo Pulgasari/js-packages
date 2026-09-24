@@ -2,9 +2,9 @@
 
 export type Dict = Record<PropertyKey, any>;
 
-/** resolved location of a dot-path inside an object. */
+/** resolved location of a dot-path inside an object. target is undefined when a node on the way is missing. */
 export interface PathTarget {
-  target: Dict;
+  target: Dict | undefined;
   key: string;
   value: unknown;
 }
@@ -19,7 +19,7 @@ export function isPlainObject(value: unknown): value is Record<PropertyKey, unkn
 /** structuredClone when available, otherwise a JSON round-trip. */
 export function deepClone<T>(value: T): T;
 
-/** recursively merges plain-object sources into target (mutates and returns target). */
+/** recursively merges plain-object sources into target (mutates and returns target). __proto__, constructor and prototype keys are skipped. */
 export function deepMerge<T extends Dict>(target: T, ...sources: Dict[]): T & Dict;
 
 /** resolves a dot-path to its parent target, final key and current value. */
@@ -27,13 +27,14 @@ export function resolvePath(object: Dict, dotKey: string): PathTarget;
 
 export function getByPath(object: Dict, path: string): any;
 export function hasPath(object: Dict, path: string): boolean;
+/** creates missing nodes as plain objects. */
 export function setByPath<T extends Dict>(object: T, path: string, value: unknown): T;
 export function deleteByPath<T extends Dict>(object: T, path: string): T;
 /** flips a boolean or an 'on'/'off' string at the given path. */
 export function toggleByPath<T extends Dict>(object: T, path: string): T;
 
 export function assign<T extends Dict>(target: T, ...sources: Dict[]): T & Dict;
-/** shallow-per-level merge via entries (mutates and returns target). */
+/** alias of deepMerge. */
 export function merge<T extends Dict>(target: T, ...sources: Dict[]): T & Dict;
 /** returns a shallow copy without the given keys. */
 export function dropByKey<T extends Dict>(object: T, ...keys: PropertyKey[]): Partial<T>;
