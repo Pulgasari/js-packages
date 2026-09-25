@@ -1,292 +1,135 @@
 // @ts-self-types="./index.d.ts"
 // @pulgasari/obj
 
-// :::::: HELPERS
+// :::::: PREDICATES
 
-const hasStructuredClone = typeof structuredClone === 'function';
-
-export const 
-isObject = value => value !== null && typeof value === 'object',
+export const
+isObject      = value => value !== null && typeof value === 'object',
 isPlainObject = value => {
-  if (value === null || typeof value !== 'object') return false;
+  if (!isObject(value)) return false;
   const proto = Object.getPrototypeOf(value);
   return proto === null || proto === Object.prototype;
 };
 
-// :::::: CORE / METHODS
+// :::::: CLONE / MERGE
+
+const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 export const
+deepClone = value => typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value)),
 
-deepClone = value => hasStructuredClone ? structuredClone(value) : JSON.parse(JSON.stringify(value)),   
-
+// plain objects are merged recursively, everything else is taken as is. mutates target
 deepMerge = (target, ...sources) => {
-  for (let i = 0; i < sources.length; i++) {
-    const source = sources[i];
+  for (const source of sources) {
     if (!isPlainObject(source)) continue;
 
-    for (const key in source) {
-      if (!Object.hasOwn(source, key) || key === '__proto__' || key === 'constructor') continue;
+    for (const key of Object.keys(source)) {
+      if (UNSAFE_KEYS.has(key)) continue;
+      const value = source[key];
 
-      const value   = source[key];
-      const current = target[key];
-
-      target[key] = isPlainObject(current) && isPlainObject(value)
-        ? deepMerge(current, value)
-        : isPlainObject(value)
-        ? deepMerge({}, value)
-        : value;
+      target[key] = !isPlainObject(value)       ? value
+                  : isPlainObject(target[key]) ? deepMerge(target[key], value)
+                  :                              deepMerge({}, value);
     }
   }
   return target;
 },
 
-resolvePath = (object, dotKey) => {
-  const parts  = dotKey.split('.');
-  const key    = parts.pop();
-  const target = parts.reduce((node, part) => node[part], object);
-  const value  = target[key];
+assign = Object.assign,
+merge  = deepMerge;
 
-  return { target, key, value };
-},
+// :::::: PATHS
 
-getByPath = (object, path) => {
-  return resolvePath(object, path).value;
-},
-
-hasPath = (object, path) => {
-  const { target, key } = resolvePath(object, path);
-  return Object.hasOwn(target, key);
-},
-
-setByPath = (object, path, value) => {
-  const { target, key } = resolvePath(object, path);
-  target[key] = value;
-  return object;
-},
-
-deleteByPath = (object, path) => {
-  const { target, key } = resolvePath(object, path);
-  delete target[key];
-  return object;
-},
-
-/*
-// Fast non-allocating path lookup without split('.') arrays or TypeError on missing nodes
+// 'a.b.c' -> { target: object.a.b, key: 'c', value }. target is undefined when
+// a node on the way is missing, nothing throws
+export const
 resolvePath = (object, path) => {
-  if (object == null || typeof path !== 'string') {
-    return { target: undefined, key: undefined, value: undefined };
+  const keys = String(path).split('.');
+  const key  = keys.pop();
+  let target = object;
+
+  for (const part of keys) {
+    target = isObject(target) ? target[part] : undefined;
   }
 
-  const lastDot = path.lastIndexOf('.');
-  
-  if (lastDot === -1) {
-    return { target: object, key: path, value: object[path] };
-  }
-
-  let current = object;
-  let start = 0;
-  let dotIndex = path.indexOf('.');
-
-  while (dotIndex !== lastDot) {
-    const k = path.slice(start, dotIndex);
-    current = current[k];
-    if (current == null) {
-      return { target: undefined, key: path.slice(lastDot + 1), value: undefined };
-    }
-    start = dotIndex + 1;
-    dotIndex = path.indexOf('.', start);
-  }
-
-  const parentKey = path.slice(start, lastDot);
-  const target = current[parentKey];
-  const key = path.slice(lastDot + 1);
-  const value = isObject(target) ? target[key] : undefined;
-
-  return { target, key, value };
+  return { key, target: isObject(target) ? target : undefined, value: isObject(target) ? target[key] : undefined };
 },
 
-getByPath = (object, path) => {
-  if (object == null || typeof path !== 'string') return undefined;
-  
-  let current = object;
-  let start = 0;
-  let dotIndex = path.indexOf('.');
-
-  while (dotIndex !== -1) {
-    const key = path.slice(start, dotIndex);
-    current = current[key];
-    if (current == null) return undefined;
-    start = dotIndex + 1;
-    dotIndex = path.indexOf('.', start);
-  }
-
-  return current[path.slice(start)];
-},
+getByPath = (object, path) => resolvePath(object, path).value,
 
 hasPath = (object, path) => {
-  if (object == null || typeof path !== 'string') return false;
-
-  let current = object;
-  let start = 0;
-  let dotIndex = path.indexOf('.');
-
-  while (dotIndex !== -1) {
-    const key = path.slice(start, dotIndex);
-    if (!Object.hasOwn(current, key)) return false;
-    current = current[key];
-    if (current == null) return false;
-    start = dotIndex + 1;
-    dotIndex = path.indexOf('.', start);
-  }
-
-  return Object.hasOwn(current, path.slice(start));
+  const { key, target } = resolvePath(object, path);
+  return target !== undefined && Object.hasOwn(target, key);
 },
 
+// missing nodes are created as plain objects
 setByPath = (object, path, value) => {
-  if (!isObject(object) || typeof path !== 'string') return object;
+  const keys = String(path).split('.');
+  const key  = keys.pop();
+  let target = object;
 
-  let current = object;
-  let start = 0;
-  let dotIndex = path.indexOf('.');
-
-  while (dotIndex !== -1) {
-    const key = path.slice(start, dotIndex);
-    if (!isObject(current[key])) {
-      current[key] = {};
-    }
-    current = current[key];
-    start = dotIndex + 1;
-    dotIndex = path.indexOf('.', start);
+  for (const part of keys) {
+    if (UNSAFE_KEYS.has(part)) return object;
+    if (!isObject(target[part])) target[part] = {};
+    target = target[part];
   }
 
-  current[path.slice(start)] = value;
+  if (!UNSAFE_KEYS.has(key)) target[key] = value;
   return object;
 },
 
 deleteByPath = (object, path) => {
-  if (object == null || typeof path !== 'string') return object;
-
-  let current = object;
-  let start = 0;
-  let dotIndex = path.indexOf('.');
-
-  while (dotIndex !== -1) {
-    const key = path.slice(start, dotIndex);
-    current = current[key];
-    if (current == null) return object;
-    start = dotIndex + 1;
-    dotIndex = path.indexOf('.', start);
-  }
-
-  delete current[path.slice(start)];
+  const { key, target } = resolvePath(object, path);
+  if (target !== undefined) delete target[key];
   return object;
 },
-*/
 
+// booleans flip, 'on' and 'off' swap, anything else stays
 toggleByPath = (object, path) => {
-  const oldValue = getByPath(object, path);
-  const newValue = typeof oldValue === 'boolean' ? !oldValue
-    : oldValue === 'on'  ? 'off'
-    : oldValue === 'off' ? 'on'
-    : oldValue;
+  const value = getByPath(object, path);
+  const next  = typeof value === 'boolean' ? !value
+              : value === 'on'             ? 'off'
+              : value === 'off'            ? 'on'
+              :                              value;
 
-  return setByPath(object, path, newValue);
-},
+  return setByPath(object, path, next);
+};
 
+// :::::: TRANSFORM
 
-
-/*
-assign = (target, ...sources) => {
-  return Object.assign(target, ...sources);
-},
-merge = (target, ...sources) => {
-  for (const source of sources) {
-    for (const [key, value] of Object.entries(source)) {
-      if (isPlainObject(value) && isPlainObject(target[key]))
-        merge(target[key], value);
-      else
-        target[key] = value;
-    }
-  }
-
-  return target;
-},
-*/
-
+export const
 dropByKey = (object, ...keys) => {
   const result = { ...object };
   for (const key of keys) delete result[key];
   return result;
-};
+},
 
-/*
-dropByKey = (object, ...keys) => {
-  if (object == null) return {};
-  const result = {};
-  const keySet = new Set (keys);
-
-  for (const key in object) {
-    if (Object.hasOwn(object, key) && !keySet.has(key)) {
-      result[key] = object[key];
-    }
-  }
-  return result;
-};
-*/
-
-// ::: TRANSFORM
-
-export const 
-
+// every function receives (key, value) and returns the next key
 transformKeys = (object, ...fns) => {
-  if (object == null) return {};
-  
-  const result  = {};
-  const fnCount = fns.length;
-
-  for (let key in object) {
-    if (Object.hasOwn(object, key)) {
-      const value = object[key];
-      for (let i = 0; i < fnCount; i++) {
-        key = fns[i](key, value);
-      }
-      result[key] = value;
-    }
+  const result = {};
+  for (const [key, value] of Object.entries(object ?? {})) {
+    result[fns.reduce((current, fn) => fn(current, value), key)] = value;
   }
-  
   return result;
 },
 
+// every function receives (value, key) and returns the next value
 transformValues = (object, ...fns) => {
-  if (object == null) return {};
-  
-  const result  = {};
-  const fnCount = fns.length;
-
-  for (const key in object) {
-    if (Object.hasOwn(object, key)) {
-      let value = object[key];
-      for (let i = 0; i < fnCount; i++) {
-        value = fns[i](value, key);
-      }
-      result[key] = value;
-    }
+  const result = {};
+  for (const [key, value] of Object.entries(object ?? {})) {
+    result[key] = fns.reduce((current, fn) => fn(current, key), value);
   }
-  
   return result;
-},
+};
 
-assign = Object.assign,
-merge  = deepMerge; // alias deepMerge to keep single optimized recursive implementation
+// :::::: CONVERSION
 
-// ::: CONVERSION
-
-export const 
+export const
 toEntries = Object.entries,
 toKeys    = Object.keys,
 toValues  = Object.values;
 
-// :::::: PROXY
+// :::::: CHAIN
 
 const methods = {
   assign,
@@ -295,38 +138,24 @@ const methods = {
   getByPath,
   hasPath,
   merge,
-  //resolvePath,
+  resolvePath,
   setByPath,
-  toggleByPath,
-  transformKeys,
-  transformValues,
   toEntries,
+  toggleByPath,
   toKeys,
   toValues,
+  transformKeys,
+  transformValues,
 };
 
+// known methods run against the object, everything else reads the property
 const obj = object => new Proxy(object ?? {}, {
-  get(target, prop) {
-    const fn = methods[prop];
-    if (fn) return (...args) => fn(target, ...args);
-    
-    const val = target[prop];
-    return typeof val === 'function' ? val.bind(target) : val;
-  }
+  get (target, key) {
+    if (Object.hasOwn(methods, key)) return (...args) => methods[key](target, ...args);
+    const value = target[key];
+    return typeof value === 'function' ? value.bind(target) : value;
+  },
 });
-
-// :::::: PROXY
-/*
-const obj = object => new Proxy ({}, {
-  get (_, method) {
-    const fn = methods[method];
-
-    return fn
-      ? (...args) => fn(object, ...args)
-      : object?.[method];
-  }
-});
-*/
 
 // :::::: EXPORT
 

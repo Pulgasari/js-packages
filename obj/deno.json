@@ -5,5 +5,8 @@
   "exports": {
     ".": "./index.js",
     "./CanonicalMap": "./CanonicalMap.js"
+  },
+  "imports": {
+    "@pulgasari/str": "jsr:@pulgasari/str@^1.0.1"
   }
 }

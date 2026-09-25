@@ -12,7 +12,7 @@ const toSlug = (value) => String(value)
   .toLowerCase();
 
 const DEFAULT_BASE = 'http://localhost';
-const isNullish    = (value)  => typeof value === 'undefined' || typeof value === 'null';
+const isNullish    = (value)  => value == null;
 const isSymbol     = (value)  => typeof value === 'symbol';
 const arrayfied    = (value)  => Array.isArray(value) ? value : [value];
 const currentHref  = ()       => (typeof window !== 'undefined' ? window.location.href : DEFAULT_BASE);    
@@ -94,7 +94,6 @@ class UrlQuery {
   get values () { return (this.#values ??= createQueryView(this.#url)); } // collision-free property view      
   
   assign   (values) { for (const [key, value] of Object.entries(values)) this.set(key, value); return this; }         
-//assign   (values) { for (const key of values) this.set(key, values[key]); return this; }
   clear    ()       { this.#url.search = ''; return this; }
   delete   (key)    { this.params.delete(key); return this; }
   has      (key)    { return this.params.has    (key); }
