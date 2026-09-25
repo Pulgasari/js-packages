@@ -32,6 +32,7 @@ const has = new Proxy({}, {
 
 export const
 isBigInt    = isTypeOf('bigint'),
+isBool      = isTypeOf('boolean'),
 isBoolean   = isTypeOf('boolean'),
 isFn        = isTypeOf('function'),
 isString    = isTypeOf('string'),
