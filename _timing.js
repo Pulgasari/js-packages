@@ -21,7 +21,7 @@ interval = (fn, delay   = 1000) => { const id = setInterval (fn, delay); return 
 timeout  = (fn, delay   =    0) => { const id = setTimeout  (fn, delay); return () => clearTimeout  (id); },
 sleep    = (duration    =    0) => new Promise (resolve => setTimeout(resolve, duration));
 
-
+/*
 export const 
 idle = (callback, deadline = 2000) =>
   isFn(requestIdleCallback)
@@ -32,6 +32,7 @@ interval = (fn, delay = 1000) => {
   const id = setInterval(fn, delay);
   return () => clearInterval(id);
 };
+*/
 
 export const 
 nextFrame = () => new Promise (requestAnimationFrame);
