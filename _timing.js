@@ -18,7 +18,7 @@ export const debounce = (callback, delay = 100) => {
 export const 
 idle     = (fn, timeout = 2000) => requestIdleCallback?.(fn, { timeout }) ?? setTimeout(fn, 1),     
 interval = (fn, delay   = 1000) => { const id = setInterval (fn, delay); return () => clearInterval (id); },         
-timeout  = (fn, delay      = 0) => { const id = setTimeout  (fn, delay); return () => clearTimeout  (id): },
+timeout  = (fn, delay   =    0) => { const id = setTimeout  (fn, delay); return () => clearTimeout  (id); },
 sleep    = (duration    =    0) => new Promise (resolve => setTimeout(resolve, duration));
 
 
