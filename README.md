@@ -9,13 +9,17 @@ Collection of JavaScript packages I created for personal use.
 - https://jsr.io/@pulgasari/logger
 - https://esm.sh/jsr/@pulgasari/logger
 
-## @pulgasari/obj
-- https://jsr.io/@pulgasari/obj
-- https://esm.sh/jsr/@pulgasari/obj
-
 ## @pulgasari/str
 - https://jsr.io/@pulgasari/str
 - https://esm.sh/jsr/@pulgasari/str
+
+---
+
+# not published (yet)
+
+## @pulgasari/obj
+- https://jsr.io/@pulgasari/obj
+- https://esm.sh/jsr/@pulgasari/obj
 
 ## @pulgasari/url
 - https://jsr.io/@pulgasari/url
