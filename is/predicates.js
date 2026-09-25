@@ -9,6 +9,7 @@ not = pred       => v => !pred(v);
 // :::::: FACTORIES
 
 const
+// TODO:isListOf | isArray(v) && v.every(...),
 isInstanceOf = constructor => v => v instanceof constructor,
 isMatchOf    = regexp      => v => typeof v === 'string' && regexp.test(v),
 isTypeOf     = type        => v => typeof v === type,
