@@ -1,0 +1,9 @@
+{
+  "name": "@pulgasari/coerce",
+  "version": "1.0.0",
+  "license": "MIT",
+  "exports": "./index.js",
+  "imports": {
+    "@pulgasari/is": "jsr:@pulgasari/is@^1.0.2"
+  }
+}

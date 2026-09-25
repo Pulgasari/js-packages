@@ -8,11 +8,16 @@ on:
         required: true
         type: choice
         options:
+          - arr
+          - coerce
+          - hash
           - is
           - logger
           - num
           - obj
+          - random
           - str
+          - timing
           - url
 
 jobs:

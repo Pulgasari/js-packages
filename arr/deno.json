@@ -1,0 +1,9 @@
+{
+  "name": "@pulgasari/arr",
+  "version": "1.0.0",
+  "license": "MIT",
+  "exports": {
+    ".": "./index.js",
+    "./fp": "./fp.js"
+  }
+}
