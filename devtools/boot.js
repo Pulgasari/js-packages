@@ -12,6 +12,7 @@ import { createConsolePanel }  from './panels/console.js';
 import { createCssPanel }      from './panels/css.js';
 import { createDataPanel }     from './panels/data.js';
 import { createDomPanel }      from './panels/dom.js';
+import { createFilesPanel }    from './panels/files.js';
 import { createSettingsPanel } from './panels/settings.js';
 
 // :::::: INIT
@@ -31,6 +32,7 @@ const registry = {
   dom      : { icon: 'mdi:file-tree',               create: createDomPanel },
   css      : { icon: 'ph:file-css-fill',            create: createCssPanel },
   data     : { icon: 'mdi:database-outline',        create: createDataPanel },
+  files    : { icon: 'mdi:folder-outline',          create: createFilesPanel },
   style    : { icon: 'dashicons:admin-appearance' },
   settings : { icon: 'mdi:tune-variant',            create: createSettingsPanel },
 };

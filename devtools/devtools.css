@@ -614,6 +614,79 @@ body:has(#devtools[data-position="top"]) { flex-direction: column-reverse; }
     }
   }
 
+  /* :::: files ::::::::::::::::::::::::::::::::::::::::::::::::: */
+
+  > section#devtools-files {
+    header {
+      flex-wrap: wrap;
+
+      /* the path on a row of its own, one link per directory */
+      nav {
+        display    : flex;
+        flex       : 1 0 100%;
+        flex-wrap  : wrap;
+        align-items: baseline;
+        gap        : 0.3em;
+
+        > button {
+          min-block-size: 0;
+          padding       : 0;
+          border        : 0;
+          background    : none;
+          color         : #8be9fd;
+          font          : inherit;
+          cursor        : pointer;
+        }
+
+        > button + button::before { content: '/'; margin-inline-end: 0.3em; color: var(--mix-500, #888); }
+      }
+
+      small {
+        margin-inline-end   : auto;
+        color               : var(--mix-500, #888);
+        font-variant-numeric: tabular-nums;
+      }
+    }
+
+    td:first-child {
+      cursor         : pointer;
+      max-inline-size: 0;
+      inline-size    : 60%;
+      overflow       : hidden;
+      text-overflow  : ellipsis;
+      white-space    : nowrap;
+    }
+
+    td[data-kind="directory"] { color: #8be9fd; }
+    td:not(:first-child)      { white-space: nowrap; }
+    td:last-child             { text-align: end; }
+
+    figure {
+      margin   : 0;
+      display  : flex;
+      flex-flow: column;
+      gap      : 0.4em;
+
+      figcaption { color: var(--mix-400, #999); }
+
+      img {
+        max-inline-size: 100%;
+        max-block-size : 30dvh;
+        object-fit     : contain;
+        align-self     : start;
+        background     : repeating-conic-gradient(#fff1 0 25%, transparent 0 50%) 0 0 / 16px 16px;
+      }
+
+      pre {
+        margin        : 0;
+        max-block-size: 30dvh;
+        overflow      : auto;
+        white-space   : pre-wrap;
+        overflow-wrap : anywhere;
+      }
+    }
+  }
+
   /* :::: live css ::::::::::::::::::::::::::::::::::::::::::::::: */
 
   > section#devtools-css aufbau-code pre {
