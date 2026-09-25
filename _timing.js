@@ -1,6 +1,6 @@
 // timing.js
 
-import { isFn } from '@pulgassri/is';
+import { isFn } from '@pulgasari/is';
 
 export const debounce = (callback, delay = 100) => {
   let timer = null;
