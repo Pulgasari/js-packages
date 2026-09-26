@@ -17,7 +17,7 @@ function matchCases (target, cases) {
   for (const [key, handler] of Object.entries(cases)) {
     if (key === 'fallback' || key === 'default' || key === '_') continue;
     // resolve() automatically maps 'isNullish' -> predicates.isNullish
-    const predicate = resolve(key);
+    const predicate = customPredicates[key] ?? resolve (key);
     if (predicate(target)) return isFn (handler) ? handler (target) : handler;
   }
 
@@ -37,6 +37,17 @@ function shift (target, cases) {
 // cases-first helper for point-free functions: shift.from(cases)(target)
 shift.from = (cases) => (target) => matchCases(target, cases);
 
+// bind custom local predicates to a new shift instance
+shift.with = (customPredicates) => {
+  const customShift = (target, cases) => {
+    if (arguments.length >= 2) 
+    return                  matchCases (target, cases, customPredicates);
+    return (casesObject) => matchCases (target, casesObject, customPredicates);
+  };
+  customShift.from = (cases) => (target) => matchCases(target, cases, customPredicates);
+  return customShift;
+};
+
 // :::::: EXPORT
 
 export { shift };
@@ -44,45 +55,10 @@ export default shift;
 
 // :::::: USAGE
 
-// bind custom local predicates to a new shift instance
-shift.with = (customPredicates) => {
-  const customShift = (target, cases) => {
-    if (arguments.length >= 2) return matchCases(target, cases, customPredicates);
-    return (casesObject) => matchCases(target, casesObject, customPredicates);
-  };
-  customShift.from = (cases) => (target) => matchCases(target, cases, customPredicates);
-  return customShift;
-};
-
-
-
-
-
-
-
-
-
-
-
+//////////////////////// EXTEND SHIFT ////////////////////////
 //////////////////////// EXTEND SHIFT ////////////////////////
 
 import { resolve as baseResolve } from './is.js';
-
-function matchCases (target, cases, customPredicates = {}) {
-  for (const [key, handler] of Object.entries(cases)) {
-    if (key === 'fallback' || key === 'default' || key === '_') continue;
-
-    // Check custom local predicates first, then fall back to @pulgasari/is
-    const predicate = customPredicates[key] ?? baseResolve(key);
-
-    if (predicate(target)) {
-      return typeof handler === 'function' ? handler(target) : handler;
-    }
-  }
-
-  const fallback = cases.fallback ?? cases.default ?? cases._;
-  return typeof fallback === 'function' ? fallback(target) : fallback;
-}
 
 export function shift(target, cases) {
   if (arguments.length >= 2) return matchCases(target, cases);
