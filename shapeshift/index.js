@@ -71,6 +71,7 @@ export function shift(target, cases) {
 //////////////////////// BETTER VERSION ////////////////////////
 
 import * as predicates from '@pulgasari/is';
+const { isFn } = predicates;
 
 const FALLBACK = 'fallback';
 const valueOf  = (handler, target) => isFn(handler) ? handler(target) : handler;
@@ -92,12 +93,10 @@ function prepare (cases, custom = {}) {
   };
 }
 
-
-
-shift.from = cases  => prepare(cases);
+shift.from = cases  => prepare (cases);
 shift.with = custom => ({ 
-  from  : cases           => prepare(cases, custom),
-  shift : (target, cases) => prepare(cases, custom)(target)
+  from  : (cases)         => prepare (cases, custom),
+  shift : (target, cases) => prepare (cases, custom) (target)
 });
 
 export { shift };
