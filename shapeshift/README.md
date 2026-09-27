@@ -14,7 +14,7 @@ const toElements = shift ({
 
 ```javascript
 const toElements = shift ({
-  'null'  : ()       => [document.documentElement],
+  'nullish'  : ()       => [document.documentElement],
   'string'   : (target) => [...document.querySelectorAll(target)],
   'element'  : (target) => [target],
   'iterable' : (target) => [...target].filter(isElement),
