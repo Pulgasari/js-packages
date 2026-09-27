@@ -6,6 +6,13 @@
 
 ## the variants
 
+```javascript
+import { createShift } from '@pulgasari/shapeshift';
+
+const shift = createShift(); 
+shift.with({ isStringOrNull, isTripleArray });
+```
+
 all 3 syntaxes gonna work.
 
 ```javascript
