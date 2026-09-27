@@ -32,7 +32,6 @@ const has = new Proxy({}, {
 export const
 isBigInt    = isTypeOf('bigint'),
 isBool      = isTypeOf('boolean'),
-isBoolean   = isTypeOf('boolean'),
 isFn        = isTypeOf('function'),
 isString    = isTypeOf('string'),
 isSymbol    = isTypeOf('symbol'),
@@ -41,6 +40,10 @@ isNull      = v => v === null,
 isNullish   = v => v === null || v === undefined,
 isDefined   = v => v !== null && v !== undefined,
 isPrimitive = v => v !== Object(v),
+
+// aliases
+isBoolean  = isTypeOf('boolean'),
+isFunction = isTypeOf('function'),
 
 // :::::: NUMBERS
 
