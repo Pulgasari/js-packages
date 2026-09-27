@@ -70,8 +70,12 @@ export function shift(target, cases) {
 
 //////////////////////// BETTER VERSION ////////////////////////
 
+// :::::: IMPORT
+
 import * as predicates from '@pulgasari/is';
 const { isFn } = predicates;
+
+// :::::: MAIN
 
 const FALLBACK = 'fallback';
 const valueOf  = (handler, target) => isFn(handler) ? handler(target) : handler;
@@ -99,6 +103,8 @@ shift.with = custom => ({
   shift : (target, cases) => prepare (cases, custom) (target)
 });
 
+// :::::: EXPORT
+
 export { shift };
 export default shift;
 
@@ -118,14 +124,11 @@ const isTripleArray  = and(isArray, hasLength(3));
 const isStringOrNull = or(isString, isNullish);
 
 // 2. Bind custom predicates to shift
-const myShift = shift.with({
-  isTripleArray,
-  isStringOrNull,
-});
+shift.with({ isStringOrNull, isTripleArray });
 
 // 3. Clean object matching with domain-specific terms
 function process (target) {
-  return myShift (target, {
+  return shift (target, {
     isTripleArray  : (arr) => `Vector 3D: ${arr.join(', ')}`,
     isStringOrNull : ()    => 'String or empty',
     isArray        : (arr) => `Array with ${arr.length} elements`,
