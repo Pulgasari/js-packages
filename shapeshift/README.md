@@ -2,6 +2,25 @@
 
 ---
 
+```javascript
+const toElements = shift ({
+  isNullish  : ()       => [document.documentElement],
+  isString   : (target) => [...document.querySelectorAll(target)],
+  isElement  : (target) => [target],
+  isIterable : (target) => [...target].filter(isElement),
+  fallback   : ()       => [],
+});
+```
+
+---
+
+it exports 3 methods:
+- `shift` — an instance from a shift-factory with predicates from `@pulgasari/is` included
+- `shift` — an instance from a shift-factory without any pre-defined predicates
+- `createShift' — the shift-factory itself
+
+---
+
 # examples
 
 ## the variants
