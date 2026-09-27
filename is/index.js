@@ -5,14 +5,15 @@ import * as predicates from './predicates.js';
 
 // :::::: INTERNAL
 
-// resolved name -> predicate. keeps the hot path a single map hit instead of
-// re-running upperFirst and two namespace lookups on every is()/isAny()/isNot().
+// resolved name -> predicate
+// keeps the hot path a single map hit instead of re-running upperFirst 
+// and two namespace lookups on every is()/isAny()/isNot().
 const nameCache  = new Map;
 const upperFirst = str => str.charAt(0).toUpperCase() + str.slice(1);
 
 // module namespace objects have a null prototype,
 // so a plain lookup cannot hit inherited keys like 'constructor'.
-const resolve = p => {
+const resolvePredicate = p => {
   if (typeof p === 'function') return p;
 
   const cached = nameCache.get(p);
@@ -36,13 +37,19 @@ const testRule = (rule, value) => {
 };
 
 const
-// an empty list returns false everywhere, instead of the vacuous true
-// every() would give — a forgotten argument must not confirm anything.
-is    = (value, ...list) => list.length > 0 && list.every(p => !!resolve(p)(value)),     
-isNot = (value, ...list) => list.length > 0 && list.every(p =>  !resolve(p)(value)),
-isAny = (value, ...list) => list.some(p => !!resolve(p)(value));
+// an empty list returns false everywhere,
+// instead of the vacuous true every() would give
+// — a forgotten argument must not confirm anything.
+is    = (value, ...list) => list.length > 0 && list.every (p => !!resolvePredicate(p)(value)),     
+isNot = (value, ...list) => list.length > 0 && list.every (p =>  !resolvePredicate(p)(value)),
+isAny = (value, ...list) =>                    list.some  (p => !!resolvePredicate(p)(value));
 
 // :::::: EXPORT
 
+export const // re-created and exported here so 'predicates.js' provides pure
+and = (...preds) => v => preds.every (p => p(v)),
+or  = (...preds) => v => preds.some  (p => p(v)),
+not = (pred)     => v => !pred(v);
+
 export * from './predicates.js';
-export { is, isAny, isNot, testRule };
+export { is, isAny, isNot, predicates, resolvePredicate, testRule };
