@@ -1,29 +1,28 @@
 // @ts-self-types="./predicates.d.ts"
 // @pulgasari/is/predicates.js
 
-export const
+const
 and = (...preds) => v => preds.every (p => p(v)),
 or  = (...preds) => v => preds.some  (p => p(v)),
 not = pred       => v => !pred(v);
 
 // :::::: FACTORIES
 
-const
-// TODO:isListOf | isArray(v) && v.every(...),
+export const // TODO: isListOf | isPrototypeOf | isArray(v) && v.every(...),
 isInstanceOf = constructor => v => v instanceof constructor,
 isMatchOf    = regexp      => v => typeof v === 'string' && regexp.test(v),
-isTypeOf     = type        => v => typeof v === type,
+isTypeOf     = type        => v => typeof v === type;
 
 // property probe. reads a missing prop as undefined, never throws.
 // with values: matches any of them. without: presence check.
-probe = key => (...values) => values.length
+const probe = key => (...values) => values.length
   ? v => values.includes(v?.[key])
   : v => v?.[key] !== undefined;
 
 // probes keyed by the property they read: has.nodeType(1, 9, 11).
 // the proxy binds any key on first access, so nothing is listed upfront.
-// the trap only runs while predicates are being defined — what a call site
-// ends up holding is a plain closure, no proxy in the hot path.
+// the trap only runs while predicates are being defined
+// — what a call site ends up holding is a plain closure, no proxy in the hot path.
 const has = new Proxy({}, {
   get: (cache, key) => (cache[key] ??= probe(key)),
 });
@@ -47,7 +46,7 @@ isPrimitive = v => v !== Object(v),
 
 isNan       = Number.isNaN,
 isInteger   = Number.isInteger,
-isFinite    = Number.isFinite,               // shadows the loose global inside this module only
+isFinite    = Number.isFinite, // shadows the loose global inside this module only
 isNumber    = v => typeof v === 'number' && Number.isFinite(v),
 isFloat     = and(isNumber, not(Number.isInteger)),
 isEven      = and(isInteger, v => v % 2 === 0),
@@ -62,16 +61,8 @@ isYear          = v => (isNumber(v) || isNumericString(v)) && /^\d{4}$/.test(Str
 
 // :::::: OBJECTS & STRUCTURES
 
-isArray  = Array.isArray,
-isObject = v => v !== null && typeof v === 'object' && !isArray(v),
-
-// prototype based: also true for Object.create(null), false for class instances.
-isPlainObject = v => {
-  if (v === null || typeof v !== 'object') return false;
-  const proto = Object.getPrototypeOf(v);
-  return proto === null || proto === Object.prototype;
-},
-
+isArray    = Array.isArray,
+isObject   = v => v !== null && typeof v === 'object' && !isArray(v),
 isMap      = v => v instanceof Map,
 isSet      = v => v instanceof Set,
 isRegExp   = v => v instanceof RegExp,
@@ -80,6 +71,13 @@ isThenable = v => isFn(v?.then),
 isError    = v => v instanceof Error,
 isBuffer   = v => typeof Buffer !== 'undefined' && Buffer.isBuffer(v),
 isDate     = v => v instanceof Date && !Number.isNaN(v.getTime()),
+
+// prototype based: also true for Object.create(null), false for class instances.
+isPlainObject = v => {
+  if (v === null || typeof v !== 'object') return false;
+  const proto = Object.getPrototypeOf(v);
+  return proto === null || proto === Object.prototype;
+},
 
 // numeric strings are rejected on purpose: '2024' is a year, not a date.
 isDateString = v => isString(v) && Number.isNaN(Number(v)) && (/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(v) || !Number.isNaN(Date.parse(v))),      
