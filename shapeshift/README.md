@@ -1,4 +1,4 @@
-# @shapeshift
+# @pulgasari/shapeshift
 
 ---
 
