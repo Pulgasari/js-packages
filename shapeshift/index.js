@@ -67,6 +67,47 @@ export function shift(target, cases) {
 
 
 
+
+//////////////////////// BETTER VERSION ////////////////////////
+
+import * as predicates from '@pulgasari/is';
+
+const FALLBACK = 'fallback';
+const valueOf  = (handler, target) => isFn(handler) ? handler(target) : handler;
+const shift    = (target, cases)   => prepare(cases)(target);
+
+function prepare (cases, custom = {}) {
+  const list = [];
+  for (const [name, handler] of Object.entries(cases)) {
+    if (name === FALLBACK) continue;
+    const predicate = custom[name] ?? predicates[name];
+    if (!isFn(predicate)) throw new TypeError(`unknown predicate: ${name}`);
+    list.push([predicate, handler]);
+  }
+  return target => {
+    for (const [predicate, handler] of list) {
+      if (predicate(target)) return valueOf(handler, target);
+    }
+    return valueOf(cases[FALLBACK], target);
+  };
+}
+
+
+
+shift.from = cases  => prepare(cases);
+shift.with = custom => ({ 
+  from  : cases           => prepare(cases, custom),
+  shift : (target, cases) => prepare(cases, custom)(target)
+});
+
+export { shift };
+export default shift;
+
+
+
+
+
+
 // USAGE EXAMPLE
 
 import { isArray, isString, isNullish, and, has } from '@pulgasari/is';
