@@ -12,6 +12,16 @@ const toElements = shift ({
 });
 ```
 
+```javascript
+const toElements = shift ({
+  'null'  : ()       => [document.documentElement],
+  'string'   : (target) => [...document.querySelectorAll(target)],
+  'element'  : (target) => [target],
+  'iterable' : (target) => [...target].filter(isElement),
+  fallback   : ()       => [],
+});
+```
+
 ---
 
 it exports 3 methods:
