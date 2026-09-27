@@ -21,12 +21,12 @@ function toElements (target) {
 ```
 
 ```javascript
-const toElements = shift ({
-  isNullish  : ()       => [document.documentElement],
-  isString   : (target) => [...document.querySelectorAll(target)],
-  isElement  : (target) => [target],
-  isIterable : (target) => [...target].filter(isElement),
-  fallback   : ()       => [],
+const toElements = (target) => shift (target) ({
+  isNullish  : () => [document.documentElement],
+  isString   : () => [...document.querySelectorAll(target)],
+  isElement  : () => [target],
+  isIterable : () => [...target].filter(isElement),
+  fallback   : () => [],
 });
 ```
 
@@ -37,6 +37,16 @@ const toElements = (target) => shift (target, {
   isElement  : () => [target],
   isIterable : () => [...target].filter(isElement),
   fallback   : () => [],
+});
+```
+
+```javascript
+const toElements = shift.from ({
+  isNullish  : ()       => [document.documentElement],
+  isString   : (target) => [...document.querySelectorAll(target)],
+  isElement  : (target) => [target],
+  isIterable : (target) => [...target].filter(isElement),
+  fallback   : ()       => [],
 });
 ```
 
