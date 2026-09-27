@@ -2,6 +2,8 @@
 
 ---
 
+what you end up with if used as intended and properly understood:
+
 ```javascript
 const toElements = shift ({
   isNullish  : ()       => [document.documentElement],
@@ -11,6 +13,8 @@ const toElements = shift ({
   fallback   : ()       => [],
 });
 ```
+
+alternative form (maybe deprecated, not sure):
 
 ```javascript
 const toElements = shift ({
