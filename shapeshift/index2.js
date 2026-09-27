@@ -1,26 +1,26 @@
 // @ts-self-types="./index.d.ts"
 // @pulgasari/shapeshift
 
-// dispatches a value to the first case whose predicate holds. the cases are an
-// object keyed by predicate names, resolved once when shift(cases) is called:
-//
-//   const label = shift({ isNullish: '—', isNumber: format, fallback: String });
-//   label(1250.5);
+/*
+dispatches a value to the first case whose predicate holds.
+the cases are an object keyed by predicate names, resolved once when shift(cases) is called:
 
-import * as is from '@pulgasari/is';
+const label = shift({ isNullish: '—', isNumber: format, fallback: String });
+label(1250.5);
+*/
+
+import * as IS_PREDICATES from '@pulgasari/is'; // or better without its is()/isAny()/isNot() checkers ??? 
+const { isFn } = isPredicates;
 
 // :::::: INTERNAL
 
 const FALLBACK = 'fallback';
-
-// the predicates of @pulgasari/is, without its is()/isAny()/isNot() checkers
-const IS_PREDICATES = Object.fromEntries(Object.entries(is).filter(([name]) => /^is[A-Z]/.test(name) && name !== 'isAny' && name !== 'isNot'));
-
-const valueOf = (handler, target) => typeof handler === 'function' ? handler(target) : handler;
+const valueOf  = (handler, target) => typeof handler === 'function' ? handler(target) : handler;
 
 // :::::: MAIN
 
-// an instance that knows `predicates`. with() adds more to this very instance
+// an instance that knows `predicates`.
+// with() adds more to this very instance
 function createShift (predicates = {}) {
   const known = {};
 
@@ -51,8 +51,8 @@ function createShift (predicates = {}) {
   return shift.with(predicates);
 }
 
-const pureShift = createShift();
-const shift     = createShift(IS_PREDICATES);
+const shift     = createShift (IS_PREDICATES); // the standard 'shift' already knows the is-predicates     
+const pureShift = createShift (); // ... but the 'pureShift' does not
 
 // :::::: EXPORT
 
