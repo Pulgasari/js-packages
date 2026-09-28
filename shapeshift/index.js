@@ -9,8 +9,7 @@ const label = shift({ isNullish: '—', isNumber: format, fallback: String });
 label(1250.5);
 */
 
-import * as IS_PREDICATES from '@pulgasari/is'; // or better without its is()/isAny()/isNot() checkers ??? 
-const { isFn } = isPredicates;
+import * as IS_PREDICATES from '@pulgasari/is';
 
 // :::::: INTERNAL
 
