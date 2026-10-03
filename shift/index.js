@@ -26,8 +26,9 @@ function createShift (preds = {}) {
     throw new TypeError(`unknown predicate: ${name}`);
   }
 
-  function shift (cases) {
-    const list = [];
+  function shift (...args) {
+    const cases = args.length < 2 ? args[0] : args[1];
+    const list  = [];
     for (const [name, handler] of Object.entries(cases)) {
       if (name === FALLBACK) continue;
       list.push([predicateOf(name), handler]);
