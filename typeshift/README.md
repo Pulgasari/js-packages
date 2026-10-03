@@ -75,3 +75,23 @@ shift.matches('number & even', 4);             // true
 ```
 
 a key that looks like an integer (`'1'`) is sorted ahead of the others by javascript itself, write it as `'1.0'` or put it into a union if the order matters.
+
+---
+
+erweiterung bzw . koppeln mit zod / standardschema / typescript ?
+
+```javascript
+// Theoretische Erweiterung für typeshift:
+typeshift.toStandardSchema = (pattern) => ({
+  '~standard': {
+    version: 1,
+    vendor: 'typeshift',
+    validate: (value) => {
+      const ok = typeshift.matches(pattern, value);
+      return ok 
+        ? { value } 
+        : { issues: [{ message: `Value does not match pattern: ${pattern}` }] };
+    }
+  }
+});
+```
