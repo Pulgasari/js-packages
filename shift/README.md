@@ -1,8 +1,28 @@
 # @pulgasari/shift
 
+a `switch` over predicates: the first case whose predicate holds gives the result.
+
+```javascript
+import { shift }     from '@pulgasari/shift';
+import { isElement } from '@pulgasari/is';
+
+const toElements = shift ({
+  isNullish  : ()       => [document.documentElement],
+  isString   : (target) => [...document.querySelectorAll(target)],
+  isElement  : (target) => [target],
+  isIterable : (target) => [...target].filter(isElement),
+  fallback   : ()       => [],
+});
+
+toElements('main > p');   // [p, p, …]
+toElements(null);         // [html]
+```
+
 ---
 
-what you end up with if used as intended and properly understood:
+## two forms
+
+**closed**: `shift (cases)` gives a function of the target, to keep and call later.
 
 ```javascript
 const toElements = shift ({
@@ -14,43 +34,12 @@ const toElements = shift ({
 });
 ```
 
-alternative form (maybe deprecated, not sure):
-
-```javascript
-const toElements = shift ({
-  'nullish'  : ()       => [document.documentElement],
-  'string'   : (target) => [...document.querySelectorAll(target)],
-  'element'  : (target) => [target],
-  'iterable' : (target) => [...target].filter(isElement),
-  fallback   : ()       => [],
-});
-```
-
----
-
-it exports 3 methods:
-- `shift` — an instance from a shift-factory with predicates from `@pulgasari/is` included
-- `pureShift` — an instance from a shift-factory without any pre-defined predicates
-- `createShift` — the shift-factory itself
-
----
-
-# examples
-
-## the variants
-
-```javascript
-import { createShift } from '@pulgasari/shapeshift';
-
-const shift = createShift(); 
-shift.with({ isStringOrNull, isTripleArray });
-```
-
-all 3 syntaxes gonna work.
+**open**: `shift (target, cases)` gives the result right away. it reads like a
+`switch (target)`, and the handlers can reach `target` from the scope around them.
 
 ```javascript
 function toElements (target) {
-  return shift (target) ({
+  return shift (target, {
     isNullish  : () => [document.documentElement],
     isString   : () => [...document.querySelectorAll(target)],
     isElement  : () => [target],
@@ -60,167 +49,137 @@ function toElements (target) {
 }
 ```
 
+both are the same thing: `shift (target, cases)` is `shift (cases) (target)`.
+the closed form checks the case names once, the open form on every call.
+
+there is no `shift (target) (cases)`: with one argument shift cannot tell a
+target from cases, a plain object can be either.
+
+## cases
+
+- **the name** is a predicate: `isString`, `isNullish`, … the `is` may be left
+  out: `string`, `nullish`. an unknown name throws a `TypeError`.
+- **the handler** is called with the target. a handler that is no function is
+  the result itself: `isNullish: ''`.
+- **the order** counts: the first predicate that holds wins.
+- **`fallback`** is taken when none holds. without it the result is `undefined`.
+
+## instances
+
 ```javascript
-const toElements = (target) => shift (target) ({
-  isNullish  : () => [document.documentElement],
-  isString   : () => [...document.querySelectorAll(target)],
-  isElement  : () => [target],
-  isIterable : () => [...target].filter(isElement),
-  fallback   : () => [],
+import { createShift, pureShift, shift } from '@pulgasari/shift';
+```
+
+- `shift` knows every predicate of [`@pulgasari/is`](../is/README.md)
+- `pureShift` knows none
+- `createShift (predicates)` makes another instance
+
+`with (predicates)` teaches an instance more, `predicates` is a copy of what it knows:
+
+```javascript
+const shapes = createShift(shift.predicates).with({
+  isTriple : value => Array.isArray(value) && value.length === 3,
 });
+
+shapes([1, 2, 3], { triple: 'three of them', fallback: 'something else' });   // 'three of them'
 ```
 
+---
+
+## examples
+
+### dates
+
+different inputs as a native `Date`.
+
 ```javascript
-const toElements = (target) => shift (target, {
-  isNullish  : () => [document.documentElement],
-  isString   : () => [...document.querySelectorAll(target)],
-  isElement  : () => [target],
-  isIterable : () => [...target].filter(isElement),
-  fallback   : () => [],
+const toDate = shift ({
+  isDate       : (date)      => date,
+  isNumber     : (timestamp) => new Date(timestamp),
+  isDateString : (text)      => new Date(text),
+  isNullish    : ()          => new Date,   // now
+  fallback     : null,
 });
+
+toDate(new Date);          // the same date
+toDate(1700000000000);     // from a timestamp
+toDate('2026-09-26');      // parsed
+toDate(null);              // now
+toDate({ invalid: 123 });  // null
 ```
 
-```javascript
-const toElements = shift.from ({
-  isNullish  : ()       => [document.documentElement],
-  isString   : (target) => [...document.querySelectorAll(target)],
-  isElement  : (target) => [target],
-  isIterable : (target) => [...target].filter(isElement),
-  fallback   : ()       => [],
-});
-```
+### a value from anything
 
-## example 1:
-
-normalizes different date inputs into a native Date object.
+the text of an element, a selector, a getter or a primitive.
 
 ```javascript
-import { shift } from './shift.js';
-
-export const parseDate = shift.from({
-  isDate       : date      => date,
-  isNumber     : timestamp => new Date (timestamp),
-  isDateString : str       => new Date (str),
-  isNullish    : ()        => new Date, // defaults to now
-  fallback     : () => null,
-});
-```
-
-```javascript
-parseDate(new Date);       // Returns same Date
-parseDate(1700000000000);    // Converted from timestamp
-parseDate('2026-09-26');     // Parsed string
-parseDate(null);             // Current date
-parseDate({ invalid: 123 }); // null
-```
-
-## example 2:
-
-extracts a string/primitive value from various input targets.
-
-```javascript
-import { shift } from './shift.js';
-
-export function extractValue (target) {
+function valueOf (target) {
   return shift (target, {
-    isElement : el => el.value ?? el.textContent?.trim() ?? '',
-    isString  : selector => {
-      const el = document.querySelector(selector);
-      return el ? extractValue(el) : selector;
+    isElement : (element)  => element.value ?? element.textContent?.trim() ?? '',
+    isString  : (selector) => {
+      const element = document.querySelector(selector);
+      return element ? valueOf(element) : selector;
     },
-    isFn      : fn => fn(),
+    isFn      : (getter) => getter(),
     isNullish : '',
     fallback  : String(target),
   });
 }
+
+valueOf('#user-input');           // the value of that field
+valueOf(document.body);           // its text
+valueOf(() => 'computed value');  // 'computed value'
+valueOf(42);                      // '42'
 ```
 
-usage:
+### an api response
+
+whatever comes back, the same shape goes on.
 
 ```javascript
-extractValue('#user-input');          // Reads value from DOM node
-extractValue(document.body);          // Reads textContent
-extractValue(() => 'computed value'); // Runs getter function
-extractValue(42);                     // '42'
-```
+async function fetchUser (id) {
+  const response = await api.get(`/users/${id}`);
 
-## example 3: API Response Normalisierer (normalizePayload)
-
-Nützt die Curried Form shift(data)(cases) in einer Async Data Pipeline.
-
-Transforms incoming API data into a predictable standard shape.
-
-```javascript
-import { shift } from './shift.js';
-
-export async function fetchUserData (userId) {
-  const rawResponse = await api.get(`/users/${userId}`);
-
-  return shift (rawResponse)({
-    // Native Error or HTTP error instance
-    isError : err => ({ ok: false, message: err.message, data: null }),
-
-    // Valid JSON string needing parse
-    isJSON : json => ({ ok: true, data: JSON.parse(json) }),
-
-    // Plain object response
-    isPlainObject : obj => ({ ok: true, data: obj }),
-
-    // Empty or invalid response fallback
-    isBlank  : { data: null, ok: false, message: 'Empty payload' },
-    fallback : { data: null, ok: false, message: 'Unexpected payload format' },
+  return shift (response, {
+    isError       : (error)  => ({ ok: false, data: null, message: error.message }),
+    isJSON        : (json)   => ({ ok: true,  data: JSON.parse(json) }),
+    isPlainObject : (object) => ({ ok: true,  data: object }),
+    isBlank       : { ok: false, data: null, message: 'empty payload' },
+    fallback      : { ok: false, data: null, message: 'unexpected payload' },
   });
 }
 ```
 
-## example 4: Tabellen-Spalten Formatter (formatCell)
+### table cells
 
-​Nützt shift.from(cases) direkt als Map-Callback beim Rendern von Data-Grids.
-
-formats arbitrary cell values for display in a UI table.
+the closed form is a function, so it goes straight into `map()`.
 
 ```javascript
-import { shift } from '@pulgasari/is';
-
 const formatCell = shift ({
-  isNullish  : '—',
-  isNumber   : val  => new Intl.NumberFormat('de-DE').format(val),
-  isDate     : date => date.toLocaleDateString('de-DE'),
-  isBoolean  : bool => (bool ? 'Ja' : 'Nein'),
-  isIterable : list => [...list].join(', '), // custom predicate check from @pulgasari/is
-  fallback   : val  => String(val),
+  isNullish    : '—',
+  isNumber     : (number) => new Intl.NumberFormat('de-DE').format(number),
+  isDate       : (date)   => date.toLocaleDateString('de-DE'),
+  isBoolean    : (bool)   => bool ? 'ja' : 'nein',
+  isCollection : (list)   => [...list].join(', '),
+  fallback     : (value)  => String(value),
 });
+
+[null, 1250.5, new Date, true, ['Admin', 'Editor']].map(formatCell);
+// ['—', '1.250,5', '3.10.2026', 'ja', 'Admin, Editor']
 ```
 
-usage in Data Rendering:
+### children
+
+nodes, factories and lists of them as a flat array of nodes.
 
 ```javascript
-const rowData      = [null, 1250.5, new Date(), true, ['Admin', 'Editor']];
-const formattedRow = rowData.map(formatCell);
-// Output: ['—', '1.250,5', '26.9.2026', 'Ja', 'Admin, Editor']
-```
-
-## example 5: Polymorpher Children-Renderer (renderNode)
-​
-Verarbeitet JSX/DOM/Component-Bäume flexibel in UI-Libraries.
-
-normalizes different children shapes into an array of renderable nodes.
-
-```javascript
-export function renderNode (children) {
-  return shift(children, {
-    // skip empty nodes
-    isNullish : () => [],
-    // lazy components or factory functions
-    isFn : fn => renderNode(fn()),
-    // single DOM / EDO element
-    isElementish : node => [node],
-    // collections (Array, Set, NodeList) excluding raw strings
-    isCollection : items => [...items].flatMap(renderNode),
-    // text nodes (string/number)
-    fallback : text => [document.createTextNode(String(text))],
+function toNodes (children) {
+  return shift (children, {
+    isNullish    : ()        => [],
+    isFn         : (factory) => toNodes(factory()),
+    isElementish : (node)    => [node],
+    isCollection : (items)   => [...items].flatMap(toNodes),   // iterable, but no string
+    fallback     : (text)    => [document.createTextNode(String(text))],
   });
 }
 ```
-
-
