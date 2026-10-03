@@ -1,28 +1,8 @@
 # @pulgasari/shift
 
-a `switch` over predicates: the first case whose predicate holds gives the result.
-
-```javascript
-import { shift }     from '@pulgasari/shift';
-import { isElement } from '@pulgasari/is';
-
-const toElements = shift ({
-  isNullish  : ()       => [document.documentElement],
-  isString   : (target) => [...document.querySelectorAll(target)],
-  isElement  : (target) => [target],
-  isIterable : (target) => [...target].filter(isElement),
-  fallback   : ()       => [],
-});
-
-toElements('main > p');   // [p, p, …]
-toElements(null);         // [html]
-```
-
 ---
 
-## two forms
-
-**closed**: `shift (cases)` gives a function of the target, to keep and call later.
+what you end up with if used as intended and properly understood:
 
 ```javascript
 const toElements = shift ({
@@ -34,8 +14,17 @@ const toElements = shift ({
 });
 ```
 
-**open**: `shift (target, cases)` gives the result right away. it reads like a
-`switch (target)`, and the handlers can reach `target` from the scope around them.
+alternative form (maybe deprecated, not sure):
+
+```javascript
+const toElements = shift ({
+  'nullish'  : ()       => [document.documentElement],
+  'string'   : (target) => [...document.querySelectorAll(target)],
+  'element'  : (target) => [target],
+  'iterable' : (target) => [...target].filter(isElement),
+  fallback   : ()       => [],
+});
+```
 
 ```javascript
 function toElements (target) {
@@ -49,50 +38,24 @@ function toElements (target) {
 }
 ```
 
-both are the same thing: `shift (target, cases)` is `shift (cases) (target)`.
-the closed form checks the case names once, the open form on every call.
+---
 
-there is no `shift (target) (cases)`: with one argument shift cannot tell a
-target from cases, a plain object can be either.
-
-## cases
-
-- **the name** is a predicate: `isString`, `isNullish`, … the `is` may be left
-  out: `string`, `nullish`. an unknown name throws a `TypeError`.
-- **the handler** is called with the target. a handler that is no function is
-  the result itself: `isNullish: ''`.
-- **the order** counts: the first predicate that holds wins.
-- **`fallback`** is taken when none holds. without it the result is `undefined`.
-
-## instances
-
-```javascript
-import { createShift, pureShift, shift } from '@pulgasari/shift';
-```
-
-- `shift` knows every predicate of [`@pulgasari/is`](../is/README.md)
-- `pureShift` knows none
-- `createShift (predicates)` makes another instance
-
-`with (predicates)` teaches an instance more, `predicates` is a copy of what it knows:
-
-```javascript
-const shapes = createShift(shift.predicates).with({
-  isTriple : value => Array.isArray(value) && value.length === 3,
-});
-
-shapes([1, 2, 3], { triple: 'three of them', fallback: 'something else' });   // 'three of them'
-```
+it exports 3 methods:
+- `shift` — an instance from a shift-factory with predicates from `@pulgasari/is` included
+- `pureShift` — an instance from a shift-factory without any pre-defined predicates
+- `createShift` — the shift-factory itself
 
 ---
 
-## examples
+# examples
 
-### dates
+## example 1: dates
 
-different inputs as a native `Date`.
+normalizes different date inputs into a native Date object.
 
 ```javascript
+import shift from '@pulgasari/shift';
+
 const toDate = shift ({
   isDate       : (date)      => date,
   isNumber     : (timestamp) => new Date(timestamp),
@@ -100,7 +63,9 @@ const toDate = shift ({
   isNullish    : ()          => new Date,   // now
   fallback     : null,
 });
+```
 
+```javascript
 toDate(new Date);          // the same date
 toDate(1700000000000);     // from a timestamp
 toDate('2026-09-26');      // parsed
@@ -108,11 +73,13 @@ toDate(null);              // now
 toDate({ invalid: 123 });  // null
 ```
 
-### a value from anything
+## example 2: a value from anything
 
-the text of an element, a selector, a getter or a primitive.
+extracts a string/primitive value from various input targets.
 
 ```javascript
+import { shift } from './shift.js';
+
 function valueOf (target) {
   return shift (target, {
     isElement : (element)  => element.value ?? element.textContent?.trim() ?? '',
@@ -125,16 +92,18 @@ function valueOf (target) {
     fallback  : String(target),
   });
 }
-
-valueOf('#user-input');           // the value of that field
-valueOf(document.body);           // its text
-valueOf(() => 'computed value');  // 'computed value'
-valueOf(42);                      // '42'
 ```
 
-### an api response
+```javascript
+valueOf('#user-input');          // the value of that field
+valueOf(document.body);          // its text
+valueOf(() => 'computed value'); // 'computed value'
+valueOf(42);                     // '42'
+```
 
-whatever comes back, the same shape goes on.
+## example 3: API response
+
+transforms incoming API data into a predictable standard shape.
 
 ```javascript
 async function fetchUser (id) {
@@ -150,7 +119,7 @@ async function fetchUser (id) {
 }
 ```
 
-### table cells
+## example 4: table cell
 
 the closed form is a function, so it goes straight into `map()`.
 
@@ -168,9 +137,9 @@ const formatCell = shift ({
 // ['—', '1.250,5', '3.10.2026', 'ja', 'Admin, Editor']
 ```
 
-### children
-
-nodes, factories and lists of them as a flat array of nodes.
+## example 5: children
+​
+normalizes different children shapes into an array of renderable nodes.
 
 ```javascript
 function toNodes (children) {
@@ -178,8 +147,10 @@ function toNodes (children) {
     isNullish    : ()        => [],
     isFn         : (factory) => toNodes(factory()),
     isElementish : (node)    => [node],
-    isCollection : (items)   => [...items].flatMap(toNodes),   // iterable, but no string
+    isCollection : (items)   => [...items].flatMap(toNodes), // iterable, but no string
     fallback     : (text)    => [document.createTextNode(String(text))],
   });
 }
 ```
+
+

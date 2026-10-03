@@ -75,3 +75,67 @@ shift.matches('number & even', 4);             // true
 ```
 
 a key that looks like an integer (`'1'`) is sorted ahead of the others by javascript itself, write it as `'1.0'` or put it into a union if the order matters.
+
+---
+
+# todo
+
+## todo 1: erweiterung bzw. koppeln mit zod / standardschema / typescript ?
+
+```javascript
+// Theoretische Erweiterung für typeshift:
+typeshift.toStandardSchema = (pattern) => ({
+  '~standard': {
+    version: 1,
+    vendor: 'typeshift',
+    validate: (value) => {
+      const ok = typeshift.matches(pattern, value);
+      return ok 
+        ? { value } 
+        : { issues: [{ message: `Value does not match pattern: ${pattern}` }] };
+    }
+  }
+});
+```
+
+```javascript
+import { typeshift } from '@pulgasari/typeshift';
+
+// Wrapper that turns a typeshift pattern into a Standard Schema compliant JS object
+export function toStandardSchema(pattern) {
+  const match = typeshift.predicate(pattern);
+
+  return {
+    '~standard': {
+      version: 1,
+      vendor: 'typeshift',
+      validate(value) {
+        if (match(value)) {
+          return { value };
+        }
+        return {
+          issues: [{ message: `Value does not match pattern: "${pattern}"` }]
+        };
+      }
+    }
+  };
+}
+```
+
+## todo 2: value extractionby pattern gedöns dies das
+
+```typescript
+const toElements = typeshift ({
+  '[1, 2, x]' : (x) => [document.documentElement],
+  fallback    : ()  => [],
+});
+```
+
+```typescript
+const describe = typeshift ({
+  "{ type: 'user', name }"     : ({ name })       => `User: ${name}`,
+  "{ type: 'error', message }" : ({ message })    => `Error: ${message}`,
+  "[head, ...tail]"            : ({ head, tail }) => ({ head, tail }),
+  "_"                          : () => null,
+});
+```
