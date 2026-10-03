@@ -78,7 +78,9 @@ a key that looks like an integer (`'1'`) is sorted ahead of the others by javasc
 
 ---
 
-erweiterung bzw . koppeln mit zod / standardschema / typescript ?
+# todo
+
+## todo 1: erweiterung bzw. koppeln mit zod / standardschema / typescript ?
 
 ```javascript
 // Theoretische Erweiterung für typeshift:
@@ -118,4 +120,28 @@ export function toStandardSchema(pattern) {
     }
   };
 }
+```
+
+## todo 2: value extractionby pattern gedöns dies das
+
+```typescript
+const toElements = typeshift ({
+  '[1, 2, x]' : (x) => [document.documentElement],
+  fallback    : ()  => [],
+});
+```
+
+chatgpt schlägt es so vor:
+
+```typescript
+const describe = typeshift ({
+  "{ type: 'user', name }"     : ({ name })    => `User: ${name}`,
+  "{ type: 'error', message }" : ({ message }) => `Error: ${message}`,
+
+  "[head, ...tail]":
+    ({ head, tail }) => ({ head, tail }),
+
+  "_":
+    () => null,
+});
 ```
