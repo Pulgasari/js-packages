@@ -49,73 +49,26 @@ it exports 3 methods:
 
 # examples
 
-## the variants
-
-```javascript
-import { createShift } from '@pulgasari/shapeshift';
-
-const shift = createShift(); 
-shift.with({ isStringOrNull, isTripleArray });
-```
-
-all 3 syntaxes gonna work.
-
-```javascript
-function toElements (target) {
-  return shift (target) ({
-    isNullish  : () => [document.documentElement],
-    isString   : () => [...document.querySelectorAll(target)],
-    isElement  : () => [target],
-    isIterable : () => [...target].filter(isElement),
-    fallback   : () => [],
-  });
-}
-```
-
-```javascript
-const toElements = (target) => shift (target) ({
-  isNullish  : () => [document.documentElement],
-  isString   : () => [...document.querySelectorAll(target)],
-  isElement  : () => [target],
-  isIterable : () => [...target].filter(isElement),
-  fallback   : () => [],
-});
-```
-
-```javascript
-const toElements = (target) => shift (target, {
-  isNullish  : () => [document.documentElement],
-  isString   : () => [...document.querySelectorAll(target)],
-  isElement  : () => [target],
-  isIterable : () => [...target].filter(isElement),
-  fallback   : () => [],
-});
-```
-
-```javascript
-const toElements = shift.from ({
-  isNullish  : ()       => [document.documentElement],
-  isString   : (target) => [...document.querySelectorAll(target)],
-  isElement  : (target) => [target],
-  isIterable : (target) => [...target].filter(isElement),
-  fallback   : ()       => [],
-});
-```
-
 ## example 1:
 
 normalizes different date inputs into a native Date object.
 
 ```javascript
-import { shift } from './shift.js';
+import shift from '@pulgasari/shift';
 
-export const parseDate = shift.from({
-  isDate       : date      => date,
-  isNumber     : timestamp => new Date (timestamp),
-  isDateString : str       => new Date (str),
-  isNullish    : ()        => new Date, // defaults to now
-  fallback     : () => null,
+const toDate = shift ({
+  isDate       : (date)      => date,
+  isNumber     : (timestamp) => new Date(timestamp),
+  isDateString : (text)      => new Date(text),
+  isNullish    : ()          => new Date,   // now
+  fallback     : null,
 });
+
+toDate(new Date);          // the same date
+toDate(1700000000000);     // from a timestamp
+toDate('2026-09-26');      // parsed
+toDate(null);              // now
+toDate({ invalid: 123 });  // null
 ```
 
 ```javascript
@@ -133,14 +86,14 @@ extracts a string/primitive value from various input targets.
 ```javascript
 import { shift } from './shift.js';
 
-export function extractValue (target) {
+function valueOf (target) {
   return shift (target, {
-    isElement : el => el.value ?? el.textContent?.trim() ?? '',
-    isString  : selector => {
-      const el = document.querySelector(selector);
-      return el ? extractValue(el) : selector;
+    isElement : (element)  => element.value ?? element.textContent?.trim() ?? '',
+    isString  : (selector) => {
+      const element = document.querySelector(selector);
+      return element ? valueOf(element) : selector;
     },
-    isFn      : fn => fn(),
+    isFn      : (getter) => getter(),
     isNullish : '',
     fallback  : String(target),
   });
@@ -150,10 +103,10 @@ export function extractValue (target) {
 usage:
 
 ```javascript
-extractValue('#user-input');          // Reads value from DOM node
-extractValue(document.body);          // Reads textContent
-extractValue(() => 'computed value'); // Runs getter function
-extractValue(42);                     // '42'
+valueOf('#user-input');          // the value of that field
+valueOf(document.body);          // its text
+valueOf(() => 'computed value'); // 'computed value'
+valueOf(42);                     // '42'
 ```
 
 ## example 3: API Response Normalisierer (normalizePayload)
@@ -163,24 +116,15 @@ Nützt die Curried Form shift(data)(cases) in einer Async Data Pipeline.
 Transforms incoming API data into a predictable standard shape.
 
 ```javascript
-import { shift } from './shift.js';
+async function fetchUser (id) {
+  const response = await api.get(`/users/${id}`);
 
-export async function fetchUserData (userId) {
-  const rawResponse = await api.get(`/users/${userId}`);
-
-  return shift (rawResponse)({
-    // Native Error or HTTP error instance
-    isError : err => ({ ok: false, message: err.message, data: null }),
-
-    // Valid JSON string needing parse
-    isJSON : json => ({ ok: true, data: JSON.parse(json) }),
-
-    // Plain object response
-    isPlainObject : obj => ({ ok: true, data: obj }),
-
-    // Empty or invalid response fallback
-    isBlank  : { data: null, ok: false, message: 'Empty payload' },
-    fallback : { data: null, ok: false, message: 'Unexpected payload format' },
+  return shift (response, {
+    isError       : (error)  => ({ ok: false, data: null, message: error.message }),
+    isJSON        : (json)   => ({ ok: true,  data: JSON.parse(json) }),
+    isPlainObject : (object) => ({ ok: true,  data: object }),
+    isBlank       : { ok: false, data: null, message: 'empty payload' },
+    fallback      : { ok: false, data: null, message: 'unexpected payload' },
   });
 }
 ```
