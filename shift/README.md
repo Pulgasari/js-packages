@@ -26,6 +26,18 @@ const toElements = shift ({
 });
 ```
 
+```javascript
+function toElements (target) {
+  return shift (target, {
+    isNullish  : () => [document.documentElement],
+    isString   : () => [...document.querySelectorAll(target)],
+    isElement  : () => [target],
+    isIterable : () => [...target].filter(isElement),
+    fallback   : () => [],
+  });
+}
+```
+
 ---
 
 it exports 3 methods:
