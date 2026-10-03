@@ -1,13 +1,7 @@
 // @ts-self-types="./index.d.ts"
-// @pulgasari/shapeshift
+// @pulgasari/shift
 
-/*
-dispatches a value to the first case whose predicate holds.
-the cases are an object keyed by predicate names, resolved once when shift(cases) is called:
-
-const label = shift({ isNullish: '—', isNumber: format, fallback: String });
-label(1250.5);
-*/
+// :::::: IMPORT
 
 import * as IS_PREDICATES from '@pulgasari/is';
 
