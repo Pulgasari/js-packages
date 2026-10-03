@@ -3,7 +3,7 @@
 
 // :::::: IMPORT
 
-import { predicates } from '@pulgasari/is';
+import { predicates as PREDICATES } from '@pulgasari/is';
 
 // :::::: INTERNAL
 
@@ -14,7 +14,7 @@ const valueOf  = (handler, target) => typeof handler === 'function' ? handler(ta
 
 // an instance that knows `predicates`.
 // with() adds more to this very instance
-function createShift (preds = {}) {
+function createShift (predicates = {}) {
   const map = new Map;
 
   function predicateOf (name) {
@@ -51,10 +51,10 @@ function createShift (preds = {}) {
   // a copy, to build another instance on top of this one
   Object.defineProperty(shift, 'predicates', { get: () => Object.fromEntries(map) });
 
-  return shift.with(preds);
+  return shift.with(predicates);
 }
 
-const shift     = createShift (predicates); // the standard 'shift' already knows the is-predicates     
+const shift     = createShift (PREDICATES); // the standard 'shift' already knows the is-predicates     
 const pureShift = createShift (); // ... but the 'pureShift' does not
 
 // :::::: EXPORT
