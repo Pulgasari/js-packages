@@ -1,16 +1,16 @@
 // @pulgasari/is/predicates - type declarations
 
-/** a value test used by is(), and by the and/or/not combinators. */
+/** a value test used by is(), and by the and/or/not combinators of the index. */
 export type Predicate = (value: unknown) => boolean;
 
-// :::::: COMBINATORS
+// :::::: FACTORIES
 
-/** true when every predicate holds. */
-export function and(...preds: Predicate[]): Predicate;
-/** true when any predicate holds. */
-export function or(...preds: Predicate[]): Predicate;
-/** negates a predicate. */
-export function not(pred: Predicate): Predicate;
+/** a predicate: true for an instance of `constructor`. */
+export function isInstanceOf(constructor: abstract new (...args: any[]) => unknown): Predicate;
+/** a predicate: true for a string `regexp` matches. */
+export function isMatchOf(regexp: RegExp): Predicate;
+/** a predicate: true when `typeof` gives `type`. */
+export function isTypeOf(type: string): Predicate;
 
 // :::::: PRIMITIVES
 
@@ -18,8 +18,12 @@ export function not(pred: Predicate): Predicate;
 export function isBigInt(value: unknown): value is bigint;
 /** true for `true` or `false`. */
 export function isBoolean(value: unknown): value is boolean;
+/** short for isBoolean. */
+export function isBool(value: unknown): value is boolean;
 /** true for any function, including classes and async functions. */
 export function isFn(value: unknown): value is (...args: any[]) => any;
+/** long for isFn. */
+export function isFunction(value: unknown): value is (...args: any[]) => any;
 /** true for a string primitive. */
 export function isString(value: unknown): value is string;
 /** true for a symbol. */
