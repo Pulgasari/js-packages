@@ -3,7 +3,7 @@
 
 // :::::: IMPORT
 
-import * as IS_PREDICATES from '@pulgasari/is';
+import { predicates } from '@pulgasari/is';
 
 // :::::: INTERNAL
 
@@ -14,37 +14,46 @@ const valueOf  = (handler, target) => typeof handler === 'function' ? handler(ta
 
 // an instance that knows `predicates`.
 // with() adds more to this very instance
-function createShift (predicates = {}) {
-  const known = {};
+function createShift (preds = {}) {
+  const map = new Map;
+
+  function predicateOf (name) {
+    if (map.has(name)) return map.get(name);
+
+    const prefixed = 'is' + name.charAt(0).toUpperCase() + name.slice(1);
+    if (map.has(prefixed)) return map.get(prefixed);
+
+    throw new TypeError(`unknown predicate: ${name}`);
+  }
 
   function shift (cases) {
     const list = [];
     for (const [name, handler] of Object.entries(cases)) {
       if (name === FALLBACK) continue;
-      if (!Object.hasOwn(known, name)) throw new TypeError(`unknown predicate: ${name}`);
-      list.push([known[name], handler]);
+      list.push([predicateOf(name), handler]);
     }
-    return target => {
+    const run = target => {
       for (const [predicate, handler] of list) if (predicate(target)) return valueOf(handler, target);
       return valueOf(cases[FALLBACK], target);
     };
+    return args.length < 2 ? run : run(args[0]);
   }
 
   shift.with = additions => {
     for (const [name, predicate] of Object.entries(additions)) {
       if (typeof predicate !== 'function') throw new TypeError(`not a predicate: ${name}`);
-      known[name] = predicate;
+      map.set(name, predicate);
     }
     return shift;
   };
 
   // a copy, to build another instance on top of this one
-  Object.defineProperty(shift, 'predicates', { get: () => ({ ...known }) });
+  Object.defineProperty(shift, 'predicates', { get: () => Object.fromEntries(map) });
 
-  return shift.with(predicates);
+  return shift.with(preds);
 }
 
-const shift     = createShift (IS_PREDICATES); // the standard 'shift' already knows the is-predicates     
+const shift     = createShift (predicates); // the standard 'shift' already knows the is-predicates     
 const pureShift = createShift (); // ... but the 'pureShift' does not
 
 // :::::: EXPORT
