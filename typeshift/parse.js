@@ -1,19 +1,22 @@
 // @pulgasari/typeshift/parse.js
-// a pattern string -> a syntax tree. the grammar, loosest first:
-//
-//   union        intersection ('|' intersection)*
-//   intersection unary ('&' unary)*
-//   unary        '!' unary | postfix
-//   postfix      primary '[]'*                      every item matches
-//   primary      '(' union ')' | tuple | shape | literal | regexp | name range?
-//   tuple        '[' (union (',' union)*)? (',' '...' union)? ']'
-//   shape        '{' (key '?'? ':' union (',' …)*)? ','? '}'
-//   range        '(' number? '..' number? ')' | '(' number ')'
-//   literal      'text' | "text" | number | true | false | null | undefined
-//   regexp       /source/flags
-//
-//   'string | number'   '[number, number, number]'   'number(0..10)'
-//   '{ ok: true, data?: object }'   'string[]'   '!nullish'   '/^\d+$/'
+
+/*
+a pattern string -> a syntax tree. the grammar, loosest first:
+
+union        intersection ('|' intersection)*
+intersection unary ('&' unary)*
+unary        '!' unary | postfix
+postfix      primary '[]'*                      every item matches
+primary      '(' union ')' | tuple | shape | literal | regexp | name range?
+tuple        '[' (union (',' union)*)? (',' '...' union)? ']'
+shape        '{' (key '?'? ':' union (',' …)*)? ','? '}'
+range        '(' number? '..' number? ')' | '(' number ')'
+literal      'text' | "text" | number | true | false | null | undefined
+regexp       /source/flags
+
+'string | number'   '[number, number, number]'   'number(0..10)'
+'{ ok: true, data?: object }'   'string[]'   '!nullish'   '/^\d+$/'
+*/
 
 // :::::: TOKENS
 
@@ -73,14 +76,14 @@ function tokenize (source) {
 const LITERALS = { false: false, null: null, true: true, undefined: undefined };
 
 function parse (source) {
-  const tokens = tokenize(source);
   let position = 0;
-
-  const peek   = () => tokens[position];
-  const next   = () => tokens[position++];
-  const accept = type => peek().type === type ? next() : null;
+  
+  const tokens = tokenize(source);
+  const peek   = ()      => tokens[position];
+  const next   = ()      => tokens[position++];
+  const accept = type    => peek().type === type ? next() : null;
   const fail   = message => { throw new SyntaxError(`${message} at ${peek().at} in "${source}"`); };
-  const expect = type => accept(type) ?? fail(`expected "${type}"`);
+  const expect = type    => accept(type) ?? fail(`expected "${type}"`);
 
   function union () {
     const options = [intersection()];
@@ -130,7 +133,7 @@ function parse (source) {
     if (accept('{')) {
       const fields = [];
       while (peek().type !== '}') {
-        const key = accept('name') ?? accept('literal') ?? fail('expected a key');
+        const key      = accept('name') ?? accept('literal') ?? fail('expected a key');
         const optional = Boolean(accept('?'));
         expect(':');
         fields.push({ key: String(key.value), optional, pattern: union() });
