@@ -49,7 +49,7 @@ it exports 3 methods:
 
 # examples
 
-## example 1:
+## example 1: dates
 
 normalizes different date inputs into a native Date object.
 
@@ -73,7 +73,7 @@ toDate(null);              // now
 toDate({ invalid: 123 });  // null
 ```
 
-## example 2:
+## example 2: a value from anything
 
 extracts a string/primitive value from various input targets.
 
@@ -101,11 +101,9 @@ valueOf(() => 'computed value'); // 'computed value'
 valueOf(42);                     // '42'
 ```
 
-## example 3: API Response Normalisierer (normalizePayload)
+## example 3: API response
 
-Nützt die Curried Form shift(data)(cases) in einer Async Data Pipeline.
-
-Transforms incoming API data into a predictable standard shape.
+transforms incoming API data into a predictable standard shape.
 
 ```javascript
 async function fetchUser (id) {
@@ -121,52 +119,36 @@ async function fetchUser (id) {
 }
 ```
 
-## example 4: Tabellen-Spalten Formatter (formatCell)
+## example 4: table cell
 
-​Nützt shift.from(cases) direkt als Map-Callback beim Rendern von Data-Grids.
-
-formats arbitrary cell values for display in a UI table.
+the closed form is a function, so it goes straight into `map()`.
 
 ```javascript
-import { shift } from '@pulgasari/is';
-
 const formatCell = shift ({
-  isNullish  : '—',
-  isNumber   : val  => new Intl.NumberFormat('de-DE').format(val),
-  isDate     : date => date.toLocaleDateString('de-DE'),
-  isBoolean  : bool => (bool ? 'Ja' : 'Nein'),
-  isIterable : list => [...list].join(', '), // custom predicate check from @pulgasari/is
-  fallback   : val  => String(val),
+  isNullish    : '—',
+  isNumber     : (number) => new Intl.NumberFormat('de-DE').format(number),
+  isDate       : (date)   => date.toLocaleDateString('de-DE'),
+  isBoolean    : (bool)   => bool ? 'ja' : 'nein',
+  isCollection : (list)   => [...list].join(', '),
+  fallback     : (value)  => String(value),
 });
+
+[null, 1250.5, new Date, true, ['Admin', 'Editor']].map(formatCell);
+// ['—', '1.250,5', '3.10.2026', 'ja', 'Admin, Editor']
 ```
 
-usage in Data Rendering:
-
-```javascript
-const rowData      = [null, 1250.5, new Date(), true, ['Admin', 'Editor']];
-const formattedRow = rowData.map(formatCell);
-// Output: ['—', '1.250,5', '26.9.2026', 'Ja', 'Admin, Editor']
-```
-
-## example 5: Polymorpher Children-Renderer (renderNode)
+## example 5: children
 ​
-Verarbeitet JSX/DOM/Component-Bäume flexibel in UI-Libraries.
-
 normalizes different children shapes into an array of renderable nodes.
 
 ```javascript
-export function renderNode (children) {
-  return shift(children, {
-    // skip empty nodes
-    isNullish : () => [],
-    // lazy components or factory functions
-    isFn : fn => renderNode(fn()),
-    // single DOM / EDO element
-    isElementish : node => [node],
-    // collections (Array, Set, NodeList) excluding raw strings
-    isCollection : items => [...items].flatMap(renderNode),
-    // text nodes (string/number)
-    fallback : text => [document.createTextNode(String(text))],
+function toNodes (children) {
+  return shift (children, {
+    isNullish    : ()        => [],
+    isFn         : (factory) => toNodes(factory()),
+    isElementish : (node)    => [node],
+    isCollection : (items)   => [...items].flatMap(toNodes), // iterable, but no string
+    fallback     : (text)    => [document.createTextNode(String(text))],
   });
 }
 ```
