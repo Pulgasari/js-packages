@@ -131,17 +131,11 @@ const toElements = typeshift ({
 });
 ```
 
-chatgpt schlägt es so vor:
-
 ```typescript
 const describe = typeshift ({
-  "{ type: 'user', name }"     : ({ name })    => `User: ${name}`,
-  "{ type: 'error', message }" : ({ message }) => `Error: ${message}`,
-
-  "[head, ...tail]":
-    ({ head, tail }) => ({ head, tail }),
-
-  "_":
-    () => null,
+  "{ type: 'user', name }"     : ({ name })       => `User: ${name}`,
+  "{ type: 'error', message }" : ({ message })    => `Error: ${message}`,
+  "[head, ...tail]"            : ({ head, tail }) => ({ head, tail }),
+  "_"                          : () => null,
 });
 ```
