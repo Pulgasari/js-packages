@@ -180,9 +180,9 @@ export async function fetchUserData (userId) {
 formats arbitrary cell values for display in a UI table.
 
 ```javascript
-import { shift } from './shift.js';
+import { shift } from '@pulgasari/is';
 
-const formatCell = shift.from({
+const formatCell = shift ({
   isNullish  : '—',
   isNumber   : val  => new Intl.NumberFormat('de-DE').format(val),
   isDate     : date => date.toLocaleDateString('de-DE'),
