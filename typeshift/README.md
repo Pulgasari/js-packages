@@ -95,3 +95,27 @@ typeshift.toStandardSchema = (pattern) => ({
   }
 });
 ```
+
+```javascript
+import { typeshift } from '@pulgasari/typeshift';
+
+// Wrapper that turns a typeshift pattern into a Standard Schema compliant JS object
+export function toStandardSchema(pattern) {
+  const match = typeshift.predicate(pattern);
+
+  return {
+    '~standard': {
+      version: 1,
+      vendor: 'typeshift',
+      validate(value) {
+        if (match(value)) {
+          return { value };
+        }
+        return {
+          issues: [{ message: `Value does not match pattern: "${pattern}"` }]
+        };
+      }
+    }
+  };
+}
+```
