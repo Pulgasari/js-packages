@@ -63,20 +63,14 @@ const toDate = shift ({
   isNullish    : ()          => new Date,   // now
   fallback     : null,
 });
+```
 
+```javascript
 toDate(new Date);          // the same date
 toDate(1700000000000);     // from a timestamp
 toDate('2026-09-26');      // parsed
 toDate(null);              // now
 toDate({ invalid: 123 });  // null
-```
-
-```javascript
-parseDate(new Date);       // Returns same Date
-parseDate(1700000000000);    // Converted from timestamp
-parseDate('2026-09-26');     // Parsed string
-parseDate(null);             // Current date
-parseDate({ invalid: 123 }); // null
 ```
 
 ## example 2:
@@ -99,8 +93,6 @@ function valueOf (target) {
   });
 }
 ```
-
-usage:
 
 ```javascript
 valueOf('#user-input');          // the value of that field
