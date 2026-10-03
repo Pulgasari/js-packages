@@ -1,9 +1,9 @@
 // @pulgasari/typeshift/compile.js
-// a syntax tree -> a predicate. names are looked up through `resolve` only when a
-// value is tested, so a type may name itself (`tree: '{ children: tree[] }'`)
 
-// the size a range bounds: numbers by value, strings and arrays by length, maps
-// and sets by size. anything else has none and is out of every range
+// a syntax tree -> a predicate. 
+// names are looked up through `resolve` only when a value is tested,
+// so a type may name itself (`tree: '{ children: tree[] }'`)
+
 function sizeOf (value) {
   if (typeof value === 'number' || typeof value === 'bigint') return Number(value);
   if (typeof value === 'string' || Array.isArray(value))      return value.length;
