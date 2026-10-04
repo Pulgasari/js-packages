@@ -1,6 +1,6 @@
 # @pulgasari/typeshift
 
-a test sibling of `@pulgasari/shapeshift`: the case keys are patterns instead of predicate names.
+a test sibling of [`@pulgasari/shift`](/shift) where the case keys are patterns instead of predicate names.
 
 ```javascript
 import { typeshift } from '@pulgasari/typeshift';
