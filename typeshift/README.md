@@ -110,12 +110,9 @@ export function toStandardSchema(pattern) {
       version: 1,
       vendor: 'typeshift',
       validate(value) {
-        if (match(value)) {
-          return { value };
-        }
-        return {
-          issues: [{ message: `Value does not match pattern: "${pattern}"` }]
-        };
+        return match(value)
+          ? { value };
+          : { issues: [{ message: `Value does not match pattern: "${pattern}"` }]};
       }
     }
   };
