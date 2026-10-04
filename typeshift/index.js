@@ -16,8 +16,9 @@ import { parse }   from './parse.js';
 
 // :::::: INTERNAL
 
-const FALLBACK = 'fallback';
-const valueOf  = (handler, target) => typeof handler === 'function' ? handler(target) : handler;
+const FALLBACK  = 'fallback';
+const valueOf   = (handler, target) => typeof handler === 'function' ? handler(target) : handler;
+const toEntries = Object.entries;
 
 // the types every instance knows, by typeof. null and undefined are literals
 const CORE = {
@@ -38,9 +39,9 @@ const CORE = {
 const FACTORIES = new Set(['isAny', 'isInstanceOf', 'isMatchOf', 'isNot', 'isTypeOf']);
 const nameOf    = key => key.slice(2).replace(/^[A-Z]+(?=[A-Z][a-z]|$)|^[A-Z]/, head => head.toLowerCase());
 const IS_TYPES  = Object.fromEntries(Object.entries(IS_PREDICATES)
-  .filter(([key, predicate]) => /^is[A-Z]/.test(key) && !FACTORIES.has(key) && typeof predicate === 'function')
-  .filter(([key]) => !Object.hasOwn(CORE, nameOf(key)))
-  .map(([key, predicate]) => [nameOf(key), predicate]));
+  .filter (([key, predicate]) => /^is[A-Z]/.test(key) && !FACTORIES.has(key) && typeof predicate === 'function')
+  .filter (([key])            => !Object.hasOwn(CORE, nameOf(key)))
+  .map    (([key, predicate]) => [nameOf(key), predicate]));
 
 // every name a tree refers to
 function namesOf (node, names = new Set) {
@@ -48,6 +49,19 @@ function namesOf (node, names = new Set) {
   for (const child of [node.item, node.pattern, node.rest, ...(node.options ?? []), ...(node.parts ?? []), ...(node.items ?? []), ...(node.fields ?? []).map(field => field.pattern)]) {
     if (child) namesOf(child, names);
   }
+  return names;
+}
+
+// allocation-free traversal
+function namesOf (node, names = new Set) {
+  if (node.type === 'name') names.add(node.name);
+  if (node.item)    namesOf(node.item,    names);
+  if (node.pattern) namesOf(node.pattern, names);
+  if (node.rest)    namesOf(node.rest,    names);
+  if (node.options) { for (let i = 0; i < node.options.length; i++) namesOf(node.options [i], names); }
+  if (node.parts)   { for (let i = 0; i < node.parts . length; i++) namesOf(node.parts   [i], names); }
+  if (node.items)   { for (let i = 0; i < node.items . length; i++) namesOf(node.items   [i], names); }
+  if (node.fields)  { for (let i = 0; i < node.fields. length; i++) namesOf(node.fields  [i].pattern, names); }
   return names;
 }
 
