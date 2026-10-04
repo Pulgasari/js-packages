@@ -6,7 +6,12 @@ shapeshift with patterns instead of predicate names.
 every case key is a pattern string (see parse.js), 
 compiled once when typeshift(cases) is called:
 
-const label = typeshift({ 'null | undefined': '—', 'number(0..)': format, fallback: String });
+const label = typeshift ({ 
+  'null | undefined' : '—', 
+  'number(0..)'      : format, 
+  fallback           : String 
+});
+
 label(1250.5);
 */
 
