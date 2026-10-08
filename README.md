@@ -29,6 +29,10 @@ Collection of JavaScript packages I created for personal use.
 - https://jsr.io/@pulgasari/hash
 - https://esm.sh/jsr/@pulgasari/hash
 
+## @pulgasari/it
+- https://jsr.io/@pulgasari/it
+- https://esm.sh/jsr/@pulgasari/it
+
 ## @pulgasari/obj
 - https://jsr.io/@pulgasari/obj
 - https://esm.sh/jsr/@pulgasari/obj
