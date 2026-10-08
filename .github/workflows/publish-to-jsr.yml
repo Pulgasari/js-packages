@@ -12,6 +12,7 @@ on:
           - coerce
           - hash
           - is
+          - it
           - logger
           - num
           - obj
