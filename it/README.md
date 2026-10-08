@@ -1,7 +1,8 @@
 # @pulgasari/it
 
 a list with a query vocabulary. `it(iterable)` hands back an `It`, a real array that
-understands `where`, `without`, `one`, `has`, `all`, `pluck`, `keyBy` and `search`.
+understands `where`, `without`, `one`, `has`, `all`, `pluck`, `keyBy`, `search` and
+`sortBy`. or, for an app that owns its globals, the same methods on `Array.prototype`.
 
 ## install
 
@@ -27,6 +28,7 @@ books.all({ year: year => year > 1900 })       // do all
 books.pluck('title')                           // the value of a key of every item
 books.keyBy('id')                              // { [id]: book }
 books.search(query, ['title', 'author'])       // case insensitive, an empty query finds all
+books.sortBy('title')                          // a sorted copy, see below
 
 it(books).where({ sourceId: folder }).search(query, ['title', 'author']).pluck('id');
 ```
@@ -65,8 +67,37 @@ import { match } from '@pulgasari/it';
 list.filter(match({ folder }));
 ```
 
+## sortBy
+
+```js
+books.sortBy('title')                          // ascending
+books.sortBy('title', 'desc')
+books.sortBy(['author', 'title'])              // ascending by each, in order
+books.sortBy({ year: 'desc', title: 'asc' })
+books.sortBy(book => book.title.length)
+```
+
+strings sort like people read them: case and accents aside, numbers by value, `'file 2'`
+before `'file 10'`. nullish goes last in either direction. each string becomes a sort key
+once, so it runs about twice as fast as an `Intl.Collator` with `numeric` and base
+sensitivity, with the same order for latin text. it is not locale specific: a swedish `å`
+sorts as `a`, not after `z`.
+
+## on Array.prototype
+
+```js
+import '@pulgasari/it/prototype';
+
+app.state.$bookmarks.where({ folder });
+types().one({ id });
+```
+
+the same methods on every array, non-enumerable like the natives, returning plain arrays.
+a name `Array.prototype` already has is left alone with a warning, so a later standard
+method wins. meant for an app, not for a library: it changes every array of the realm.
+
 ## performance
 
 the methods loop by index and hand over a plain array as an `It`, as fast as the native
-`filter` and `find`. `it()` copies the list once. the natives `It` does not override
+`filter` and `find` on a few thousand items. `it()` copies the list once. the natives `It` does not override
 (`sort`, `concat`, `flat` …) work, but run slower on an array with another prototype.

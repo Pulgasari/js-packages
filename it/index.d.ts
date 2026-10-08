@@ -19,6 +19,11 @@ export type Pattern<T = unknown> =
 /** a key of the items or a function of one. */
 export type Getter<T, R = unknown> = keyof T | ((item: T) => R);
 
+export type Direction = 'asc' | 'desc';
+
+/** a key or a function, a list of them (ascending each), or `{ key: direction }` in order. */
+export type Sort<T> = Getter<T> | Array<Getter<T>> | Partial<Record<keyof T, Direction>>;
+
 /** a real array with a query vocabulary. lists it returns are an `It` again. */
 export class It<T> extends Array<T> {
   /** all items that match. */
@@ -38,6 +43,8 @@ export class It<T> extends Array<T> {
   keyBy (key: Getter<T, PropertyKey>): Record<PropertyKey, T>;
   /** case insensitive text search over fields, over the items without fields. an empty query finds everything. */
   search (query?: string | null, fields?: Getter<T> | Array<Getter<T>>): It<T>;
+  /** a sorted copy. strings case and accent insensitive, numbers in them by value, nullish last. */
+  sortBy (sort: Sort<T>, direction?: Direction): It<T>;
 
   filter (fn: (item: T, index: number, list: It<T>) => unknown): It<T>;
   map<R> (fn: (item: T, index: number, list: It<T>) => R): It<R>;
