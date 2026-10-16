@@ -48,16 +48,7 @@ const IS_TYPES  = Object.fromEntries(Object.entries(IS_PREDICATES)
   .filter (([key])            => !Object.hasOwn(CORE, nameOf(key)))
   .map    (([key, predicate]) => [nameOf(key), predicate]));
 
-// every name a tree refers to
-function namesOf (node, names = new Set) {
-  if (node.type === 'name') names.add(node.name);
-  for (const child of [node.item, node.pattern, node.rest, ...(node.options ?? []), ...(node.parts ?? []), ...(node.items ?? []), ...(node.fields ?? []).map(field => field.pattern)]) {
-    if (child) namesOf(child, names);
-  }
-  return names;
-}
-
-// allocation-free traversal
+// every name a tree refers to, without allocating per node
 function namesOf (node, names = new Set) {
   if (node.type === 'name') names.add(node.name);
   if (node.item)    namesOf(node.item,    names);
