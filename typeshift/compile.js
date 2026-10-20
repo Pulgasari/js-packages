@@ -62,18 +62,11 @@ function compile (node, resolve) {
     case 'tuple': {
       const items = node.items.map(item => compile(item, resolve));
       const rest  = node.rest && compile(node.rest, resolve);
-      // Eager: Creates a shallow copy of the array every time a rest tuple is checked!
-      return value => Array.isArray(value)
-        && (rest ? value.length >= items.length : value.length === items.length)
-        && items.every((item, index) => item(value[index]))
-        && (!rest || value.slice(items.length).every(rest));
-      // angeblich besser
       return value => {
         if (!Array.isArray(value)) return false;
         if (rest ? value.length < items.length : value.length !== items.length) return false;
-        for (let i = 0; i < items.length; i++) if (!items[i](value[i])) return false; // check fixed items
-        if (rest) for (let i = items.length; i < value.length; i++) if (!rest(value[i])) return false; // check rest items lazily without array slicing        
-        //
+        for (let i = 0; i < items.length; i++) if (!items[i](value[i])) return false;
+        if (rest) for (let i = items.length; i < value.length; i++) if (!rest(value[i])) return false;
         return true;
       };
     }
@@ -85,71 +78,6 @@ function compile (node, resolve) {
   }
   throw new TypeError(`unknown node: ${node.type}`);
 }
-
-function compile2 (resolve) { 
-return function (node) { 
-  return switch (node.type) {
-    case 'intersection': {
-      return value => node.parts.map(compile(resolve)).every(part => part(value));
-    }
-      
-    case 'list': {
-      return value => Array.isArray(value) && value.every(compile(resolve));
-    }
-      
-    case 'literal': {
-      return value => value === node.value;
-    }
-      
-    case 'name': {
-      const { name, range } = node;
-      return range
-        ? value => resolve(name)(value) && inRange(range, value)
-        : value => resolve(name)(value);
-    }
-      
-    case 'not': {
-      return value => !compile(resolve)(node.pattern)(value);
-    }
-      
-    case 'regexp': {
-      const regexp = node.value;
-      return value => typeof value === 'string' && (regexp.lastIndex = 0, regexp.test(value));
-    }
-      
-    case 'shape': {
-      const fields = node.fields.map(({ key, optional, pattern }) => ({ key, optional, pattern: compile(pattern, resolve) }));
-      return value => isKeyed(value) && fields.every(
-        ({ key, optional, pattern }) => optional && value[key] === undefined ? true : key in value && pattern(value[key])
-      );
-    }
-      
-    case 'tuple': {
-      const items = node.items.map(compile(resolve));
-      const rest  = node.rest && compile(resolve)(node.rest);
-      // Eager: Creates a shallow copy of the array every time a rest tuple is checked!
-      return value => Array.isArray(value)
-        && (rest ? value.length >= items.length : value.length === items.length)
-        && items.every((item, index) => item(value[index]))
-        && (!rest || value.slice(items.length).every(rest));
-      // angeblich besser
-      return value => {
-        if (!Array.isArray(value)) return false;
-        if (rest ? value.length < items.length : value.length !== items.length) return false;
-        for (let i = 0; i < items.length; i++) if (!items[i](value[i])) return false; // check fixed items
-        if (rest) for (let i = items.length; i < value.length; i++) if (!rest(value[i])) return false; // check rest items lazily without array slicing        
-        //
-        return true;
-      };
-    }
-    
-    case 'union': {
-      return value => node.options.map(compile(resolve).some(option => option(value));
-    }
-  }
-  throw new TypeError(`unknown node: ${node.type}`);
-}}
-
 
 export { compile, sizeOf };
 export default compile;
